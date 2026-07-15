@@ -1,0 +1,6 @@
+# Shell launchers must keep LF endings, or macOS/Linux `/bin/sh` fails with
+# "bad interpreter" on the trailing CR (#11).
+*.sh text eol=lf
+*.command text eol=lf
+# Windows launcher wants CRLF.
+*.cmd text eol=crlf

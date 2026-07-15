@@ -16,6 +16,24 @@ pnpm dev --root <path-to-your-teach-workspaces>   # defaults to ~/iTeacher
 # → http://localhost:4173
 ```
 
+### Double-click launch (no terminal, #11)
+
+For a non-technical learner, the [`launchers/`](launchers/) folder has a
+double-clickable launcher per platform. It builds once if needed, starts the
+local server, and opens the system browser at the served URL:
+
+| Platform | File |
+| --- | --- |
+| Windows | [`launchers/iTeacher.cmd`](launchers/iTeacher.cmd) |
+| macOS | [`launchers/iTeacher.command`](launchers/iTeacher.command) (`chmod +x` once) |
+| Linux | [`launchers/iteacher.sh`](launchers/iteacher.sh) |
+
+Under the hood the launcher just runs `node dist/server/main.js --open`; `--open`
+(or `ITEACHER_OPEN=1`) makes the server open the browser once it is listening.
+It reuses the same root resolution + first-run flow — it does not pick the root
+itself. Closing the window (or Ctrl-C) shuts the server down gracefully. It stays
+a local web app over `localhost`; it is not Electron.
+
 Each immediate subfolder of the root that contains a `MISSION.md` is a topic.
 The app is a **viewer / runtime**, not an authoring agent — lessons are authored
 by Claude Code running `teach`; iTeacher only reads workspace files and writes

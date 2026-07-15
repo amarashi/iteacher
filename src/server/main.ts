@@ -12,7 +12,9 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import type { Server } from "node:http";
 import { createApp } from "./app.js";
+import { openBrowser } from "./launch.js";
 
 /** A `--root` / positional / `ITEACHER_ROOT` override, or null if none was given. */
 function overrideRoot(argv: string[], env: NodeJS.ProcessEnv): string | null {
@@ -52,9 +54,45 @@ function main(): void {
   });
 
   const port = Number(env.PORT ?? 4173);
-  app.listen(port, () => {
-    console.log(`iTeacher → http://localhost:${port}`);
+  const url = `http://localhost:${port}`;
+  // The double-click launcher (#11) passes `--open` so the learner never touches
+  // a browser bar; dev (`pnpm dev`) omits it and just prints the URL.
+  const open = process.argv.includes("--open") || isTruthy(env.ITEACHER_OPEN);
+
+  const server = app.listen(port, () => {
+    console.log(`iTeacher → ${url}`);
+    if (open) openBrowser(url);
   });
+
+  installGracefulShutdown(server);
+}
+
+/** Treat "1"/"true"/"yes" (any case) as on; everything else, including unset, as off. */
+function isTruthy(value: string | undefined): boolean {
+  return value !== undefined && ["1", "true", "yes"].includes(value.trim().toLowerCase());
+}
+
+/**
+ * Close the server on Ctrl-C / terminal-close so a launched app exits cleanly
+ * instead of being killed mid-request (#11: closing is graceful). `server.close`
+ * stops accepting connections and lets in-flight ones drain before we exit.
+ *
+ * SIGHUP is included because closing the launcher's terminal window (the
+ * double-click learner's natural "quit") sends it on macOS/Linux.
+ */
+function installGracefulShutdown(server: Server): void {
+  let closing = false;
+  const shutdown = () => {
+    if (closing) return; // a second signal shouldn't re-enter
+    closing = true;
+    server.close(() => process.exit(0));
+    // A dashboard's live SSE stream (#12) is a long-lived connection that never
+    // drains on its own, so `close`'s callback may never fire — force-exit after
+    // a short grace period so closing can't hang. `unref` keeps this timer from
+    // holding the process open when close *does* drain first.
+    setTimeout(() => process.exit(0), 500).unref();
+  };
+  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) process.on(signal, shutdown);
 }
 
 main();
