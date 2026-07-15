@@ -69,9 +69,9 @@ The lesson should be short, and completable very quickly. Learners' working memo
 
 ### Opening a lesson
 
-Open a lesson **through the running iTeacher app, never as a bare file.** The app serves each lesson at `/w/<workspace-slug>/lessons/<file>.html` (reachable from the dashboard at the app's root URL), and only the _served_ page gets the injected top bar and the runtime bridge that records progress. Opening the raw `.html` off the filesystem — `start`, `open`, `xdg-open`, double-click — bypasses the server, so the bridge silently no-ops and nothing is tracked.
+Lessons reach the learner **through the running iTeacher app, never as a bare file.** The app serves each lesson at `/w/<workspace-slug>/lessons/<file>.html` (reachable from the dashboard at the app's root URL), and only the _served_ page gets the injected top bar and the runtime bridge that records progress. Opening the raw `.html` off the filesystem — `start`, `open`, `xdg-open`, double-click — bypasses the server, so the bridge silently no-ops and nothing is tracked.
 
-So: point the user at the dashboard (or the served lesson URL) rather than running a CLI command that opens the file directly. If the app isn't running, tell the user to start it (the repo's launcher, or `pnpm dev`) instead of falling back to opening the file.
+**Never launch a browser yourself — not at the file, and not at the served URL either.** The app already displays lessons in its own study view; running `start`/`open`/`xdg-open` on _any_ URL just spawns a redundant extra tab next to it. When a lesson is ready, simply say so and name it (mentioning the dashboard or the served path in your message is fine) — the learner opens it from the app. If the app isn't running, tell the user to start it (the repo's launcher, or `pnpm dev`); do not open anything on their behalf.
 
 Each lesson should link via HTML anchors to other lessons and reference documents.
 
