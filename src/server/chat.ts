@@ -36,4 +36,62 @@ padding:10px 12px;font-family:var(--font-ui);font-size:13.5px;line-height:1.4;co
 .send{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:none;background:var(--accent);
 color:var(--accent-contrast);font-size:18px;cursor:pointer}
 .send:disabled{opacity:.45;cursor:default}
+/* Rendered-markdown assistant text: real paragraphs, headings, lists, emphasis. */
+.bubble .txt{white-space:normal;display:block}
+.bubble .txt>*:first-child{margin-top:0}
+.bubble .txt>*:last-child{margin-bottom:0}
+.bubble .txt p{margin:0 0 8px}
+.bubble .txt h3,.bubble .txt h4,.bubble .txt h5,.bubble .txt h6{margin:12px 0 6px;font-weight:700;line-height:1.25}
+.bubble .txt h3{font-size:15px}.bubble .txt h4{font-size:14px}.bubble .txt h5,.bubble .txt h6{font-size:13.5px}
+.bubble .txt ul,.bubble .txt ol{margin:6px 0;padding-left:20px}
+.bubble .txt li{margin:3px 0}
+.bubble .txt strong{font-weight:700}.bubble .txt em{font-style:italic}
+.bubble .txt a{color:var(--accent);text-decoration:underline}
+.bubble .txt code{background:var(--surface);border:1px solid var(--border);border-radius:4px;
+padding:0 4px;font-family:var(--font-mono);font-size:.88em}
 `;
+
+/**
+ * A tiny, dependency-free markdown → HTML renderer, shared by both chats so the
+ * teacher's replies read as prose (paragraphs, headings, lists, **bold**, *italic*,
+ * `code`, links) instead of raw asterisks. It escapes first, then builds the HTML
+ * itself, so the streamed agent text can never inject live markup. Re-run on every
+ * streamed delta — messages are short, and a half-typed `**` just shows briefly.
+ *
+ * Written as browser-ready ES5 (no backtick literals in the source, so it can live
+ * in a template string), exposing `window.iteacherMd(text) → htmlString`.
+ */
+export const CHAT_MD_JS = `(function(){
+  var BT=String.fromCharCode(96); // backtick, avoided as a literal here
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function inline(s){
+    s=esc(s);
+    s=s.replace(new RegExp(BT+'([^'+BT+']+)'+BT,'g'),'<code>$1</code>');
+    s=s.replace(/\\*\\*([^*]+)\\*\\*/g,'<strong>$1</strong>');
+    s=s.replace(/__([^_]+)__/g,'<strong>$1</strong>');
+    s=s.replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^)\\s]+)\\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s=s.replace(/(^|[^*])\\*([^*\\n]+)\\*/g,'$1<em>$2</em>');
+    s=s.replace(/(^|[^_a-zA-Z0-9])_([^_\\n]+)_/g,'$1<em>$2</em>');
+    return s;
+  }
+  function md(src){
+    var lines=String(src==null?'':src).replace(/\\r\\n?/g,'\\n').split('\\n');
+    var html='', para=[], listType=null, items=[];
+    function flushPara(){ if(para.length){ html+='<p>'+para.map(inline).join('<br>')+'</p>'; para=[]; } }
+    function flushList(){ if(listType){ html+='<'+listType+'>'+items.map(function(t){return '<li>'+inline(t)+'</li>';}).join('')+'</'+listType+'>'; listType=null; items=[]; } }
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i];
+      if(line.replace(/\\s+/g,'')===''){ flushPara(); flushList(); continue; }
+      var h=/^(#{1,6})\\s+(.*)$/.exec(line);
+      if(h){ flushPara(); flushList(); var lvl=Math.min(h[1].length+2,6); html+='<h'+lvl+'>'+inline(h[2])+'</h'+lvl+'>'; continue; }
+      var ul=/^\\s*[-*+]\\s+(.*)$/.exec(line);
+      if(ul){ flushPara(); if(listType&&listType!=='ul')flushList(); listType='ul'; items.push(ul[1]); continue; }
+      var ol=/^\\s*\\d+[.)]\\s+(.*)$/.exec(line);
+      if(ol){ flushPara(); if(listType&&listType!=='ol')flushList(); listType='ol'; items.push(ol[1]); continue; }
+      flushList(); para.push(line);
+    }
+    flushPara(); flushList();
+    return html;
+  }
+  window.iteacherMd=md;
+})();`;

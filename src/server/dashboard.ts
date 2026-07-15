@@ -16,7 +16,7 @@
 import type { DashboardModel, TopicModel, LessonBead } from "../store/types.js";
 import { esc, attr, journeyLabel } from "./html.js";
 import { TOKENS_CSS } from "./tokens.js";
-import { CHAT_CSS } from "./chat.js";
+import { CHAT_CSS, CHAT_MD_JS } from "./chat.js";
 
 const AHEAD = 3; // beads to draw past the next-up lesson before collapsing to a cap
 const BEHIND = 1; // recent completed beads to keep for context
@@ -299,6 +299,7 @@ ${header}
 ${body}
 </div>
 ${chatPanel()}
+<script>${CHAT_MD_JS}</script>
 <script>${LIVE_SCRIPT}</script>
 </body>
 </html>`;
@@ -401,10 +402,10 @@ const LIVE_SCRIPT = `(function(){
     if(i) i.disabled=v; if(s) s.disabled=v; if(!v&&i) i.focus();
   }
   function onTeach(d){
-    if(d.type==='text'){ if(!curBubble)newBot(); curText+=d.text; curTxt.textContent=curText; scroll(); }
+    if(d.type==='text'){ if(!curBubble)newBot(); curText+=d.text; curTxt.innerHTML=window.iteacherMd(curText); scroll(); }
     else if(d.type==='tool'){ if(d.name==='Write'||d.name==='Edit'){ if(!curBubble)newBot(); authoringChip(); } }
     else if(d.type==='turn'){ if(curBubble){ curBubble.classList.remove('streaming'); var a=curBubble.querySelector('.authoring'); if(a){ a.classList.add('done'); a.innerHTML='\\u2713 lessons ready'; } } curBubble=null; setSending(false); }
-    else if(d.type==='error'){ if(!curBubble)newBot(); curTxt.textContent=curText+' \\u26a0 '+d.message; curBubble.classList.remove('streaming'); curBubble=null; setSending(false); }
+    else if(d.type==='error'){ if(!curBubble)newBot(); curTxt.innerHTML=window.iteacherMd(curText+'\\n\\n\\u26a0 '+d.message); curBubble.classList.remove('streaming'); curBubble=null; setSending(false); }
   }
   function openStream(){
     if(es2)es2.close();
