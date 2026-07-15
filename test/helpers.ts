@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
-import { createApp } from "../src/server/app.js";
+import { createApp, type AppOptions } from "../src/server/app.js";
 
 /** A workspace to materialise on disk for a test. */
 export interface WorkspaceSpec {
@@ -42,8 +42,10 @@ export function mission(topic: string): string {
 }
 
 /** Start the app on an ephemeral port. Returns its base URL and a close fn. */
-export async function startServer(root: string): Promise<{ base: string; close: () => Promise<void> }> {
-  const app = createApp(root);
+export async function startServer(
+  config: string | AppOptions,
+): Promise<{ base: string; close: () => Promise<void> }> {
+  const app = createApp(config);
   const server = await new Promise<Server>((resolve) => {
     const s = app.listen(0, () => resolve(s));
   });
