@@ -24,6 +24,7 @@ import type { CompletionEvent, DashboardModel, TopicModel } from "../store/types
 import { readConfig, writeConfig } from "../store/config.js";
 import { BRIDGE_SOURCE } from "./bridge.js";
 import { createEventStream } from "./events.js";
+import { startSession, replyToSession, subscribe } from "./agent.js";
 import { injectChrome } from "./render.js";
 import { renderDashboard } from "./dashboard.js";
 import { renderWelcome } from "./welcome.js";
@@ -110,6 +111,49 @@ export function createApp(config: AppOptions | string): Express {
   app.get("/w/:topic/*", (req, res) => {
     if (!root) return res.status(404).send("No root selected");
     serveWorkspaceFile(root, req, res);
+  });
+
+  // --- in-app teaching agent (phase-2 host, demo) --------------------------
+  // Start a conversation with the teaching agent; it authors into a new
+  // workspace folder under the root, and the dashboard's own watch reveals it.
+  app.post("/api/teach/start", (req, res) => {
+    if (!root) return res.status(404).json({ error: "no root selected" });
+    const topic = typeof req.body?.topic === "string" ? req.body.topic.trim() : "";
+    if (!topic || topic.length > 300) return res.status(400).json({ error: "invalid topic" });
+    const { sessionId, slug } = startSession(root, topic);
+    res.status(202).json({ sessionId, slug });
+  });
+
+  // The agent's streamed turn — assistant prose, tool/authoring hints, turn-complete.
+  app.get("/api/teach/:id/events", (req, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.write("retry: 3000\n: connected\n\n");
+    const unsubscribe = subscribe(req.params.id, (e) => res.write(`data: ${JSON.stringify(e)}\n\n`));
+    if (!unsubscribe) {
+      res.write(`data: ${JSON.stringify({ type: "error", message: "session not found" })}\n\n`);
+      return res.end();
+    }
+    const heartbeat = setInterval(() => res.write(": ping\n\n"), 25_000);
+    heartbeat.unref();
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      res.end();
+    });
+  });
+
+  // The user's reply → the agent's next turn (streamed over the events channel above).
+  app.post("/api/teach/:id/reply", (req, res) => {
+    const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
+    if (!text) return res.status(400).json({ error: "empty reply" });
+    const ok = replyToSession(req.params.id, text);
+    if (!ok) return res.status(409).json({ error: "unknown or busy session" });
+    res.status(202).end();
   });
 
   return app;
