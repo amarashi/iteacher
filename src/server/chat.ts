@@ -22,6 +22,9 @@ white-space:pre-wrap;overflow-wrap:anywhere}
 .bubble .hint{display:block;margin-top:4px;color:var(--text-faint);font-size:12px}
 .bubble.streaming .txt:after{content:"▋";margin-left:1px;color:var(--accent);animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
+/* "Teacher is working" bubble — shown from send until the reply starts streaming. */
+.msg.thinking .bubble{display:flex;align-items:center;gap:8px;color:var(--text-muted)}
+.msg.thinking .tlabel{font-size:12.5px;font-style:italic}
 .authoring{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);
 font-size:12px;color:var(--accent);font-weight:600}
 .authoring.done{color:var(--status-done)}
@@ -94,4 +97,39 @@ export const CHAT_MD_JS = `(function(){
     return html;
   }
   window.iteacherMd=md;
+})();`;
+
+/**
+ * The shared "teacher is working" indicator. Between the user's send and the
+ * first streamed token the agent can spend a long stretch thinking or running
+ * tools, and until now the only signal was a disabled composer — the user
+ * couldn't tell anything was happening. This shows an animated-dots bot bubble
+ * the moment a turn starts and renames itself as tool events arrive
+ * ("reading…", "writing…"), so the wait is always narrated. Same ES5-in-a-
+ * template-string style as CHAT_MD_JS; exposes `window.iteacherThinking`.
+ */
+export const CHAT_THINKING_JS = `(function(){
+  var node=null, txt=null;
+  function labelFor(name){
+    if(name==='Write'||name==='Edit'||name==='NotebookEdit')return 'writing\\u2026';
+    if(name==='Read'||name==='Grep'||name==='Glob')return 'reading\\u2026';
+    if(name==='TodoWrite')return 'planning\\u2026';
+    return 'working\\u2026';
+  }
+  window.iteacherThinking={
+    show:function(log,label){
+      if(!log)return;
+      if(!node){
+        node=document.createElement('div'); node.className='msg bot thinking';
+        var b=document.createElement('div'); b.className='bubble';
+        b.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
+        txt=document.createElement('span'); txt.className='tlabel';
+        b.appendChild(txt); node.appendChild(b);
+      }
+      txt.textContent=label||'Thinking\\u2026';
+      log.appendChild(node); log.scrollTop=log.scrollHeight;
+    },
+    tool:function(log,name){ this.show(log,labelFor(name)); },
+    hide:function(){ if(node&&node.parentNode)node.parentNode.removeChild(node); }
+  };
 })();`;

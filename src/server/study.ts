@@ -16,7 +16,7 @@
 import type { TopicModel } from "../store/types.js";
 import { esc, attr, journeyLabel } from "./html.js";
 import { TOKENS_CSS } from "./tokens.js";
-import { CHAT_CSS, CHAT_MD_JS } from "./chat.js";
+import { CHAT_CSS, CHAT_MD_JS, CHAT_THINKING_JS } from "./chat.js";
 
 /** Render the study shell for `topic`, opened on lesson `currentFile`. */
 export function renderStudy(topic: TopicModel, currentFile: string): string {
@@ -74,6 +74,7 @@ export function renderStudy(topic: TopicModel, currentFile: string): string {
 </div>
 <script>window.__STUDY__=${jsonForScript(bootstrap)};</script>
 <script>${CHAT_MD_JS}</script>
+<script>${CHAT_THINKING_JS}</script>
 <script>${STUDY_SCRIPT}</script>
 </body>
 </html>`;
@@ -131,7 +132,7 @@ const STUDY_SCRIPT = `(function(){
     m.appendChild(b); logEl().appendChild(m); scroll();
   }
   function newBot(){
-    dropJoining();
+    dropJoining(); window.iteacherThinking.hide();
     var m=document.createElement('div'); m.className='msg bot';
     curBubble=document.createElement('div'); curBubble.className='bubble streaming';
     curTxt=document.createElement('span'); curTxt.className='txt';
@@ -145,7 +146,8 @@ const STUDY_SCRIPT = `(function(){
   }
   function onTeach(d){
     if(d.type==='text'){ if(!curBubble)newBot(); curText+=d.text; curTxt.innerHTML=window.iteacherMd(curText); scroll(); }
-    else if(d.type==='turn'){ if(curBubble){curBubble.classList.remove('streaming');} curBubble=null; setSending(false); }
+    else if(d.type==='tool'){ if(!curBubble)window.iteacherThinking.tool(logEl(),d.name); }
+    else if(d.type==='turn'){ window.iteacherThinking.hide(); if(curBubble){curBubble.classList.remove('streaming');} curBubble=null; setSending(false); }
     else if(d.type==='error'){ if(!curBubble)newBot(); curTxt.innerHTML=window.iteacherMd(curText+'\\n\\n\\u26a0 '+d.message); curBubble.classList.remove('streaming'); curBubble=null; setSending(false); }
   }
   function openStream(){
@@ -167,8 +169,9 @@ const STUDY_SCRIPT = `(function(){
     var i=document.getElementById('chatinput'); var text=(i&&i.value||'').trim();
     if(!text||sending||!sid)return false;
     addUser(text); if(i)i.value=''; setSending(true);
+    window.iteacherThinking.show(logEl());
     fetch('/api/teach/'+sid+'/reply',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:text})})
-      .catch(function(){ setSending(false); });
+      .catch(function(){ window.iteacherThinking.hide(); setSending(false); });
     return false;
   };
   document.addEventListener('keydown',function(e){

@@ -16,7 +16,7 @@
 import type { DashboardModel, TopicModel, LessonBead } from "../store/types.js";
 import { esc, attr, journeyLabel } from "./html.js";
 import { TOKENS_CSS } from "./tokens.js";
-import { CHAT_CSS, CHAT_MD_JS } from "./chat.js";
+import { CHAT_CSS, CHAT_MD_JS, CHAT_THINKING_JS } from "./chat.js";
 
 const AHEAD = 3; // beads to draw past the next-up lesson before collapsing to a cap
 const BEHIND = 1; // recent completed beads to keep for context
@@ -300,6 +300,7 @@ ${body}
 </div>
 ${chatPanel()}
 <script>${CHAT_MD_JS}</script>
+<script>${CHAT_THINKING_JS}</script>
 <script>${LIVE_SCRIPT}</script>
 </body>
 </html>`;
@@ -384,6 +385,7 @@ const LIVE_SCRIPT = `(function(){
     m.appendChild(b); log().appendChild(m); scroll();
   }
   function newBot(){
+    window.iteacherThinking.hide();
     var m=document.createElement('div'); m.className='msg bot';
     curBubble=document.createElement('div'); curBubble.className='bubble streaming';
     curTxt=document.createElement('span'); curTxt.className='txt';
@@ -403,8 +405,8 @@ const LIVE_SCRIPT = `(function(){
   }
   function onTeach(d){
     if(d.type==='text'){ if(!curBubble)newBot(); curText+=d.text; curTxt.innerHTML=window.iteacherMd(curText); scroll(); }
-    else if(d.type==='tool'){ if(d.name==='Write'||d.name==='Edit'){ if(!curBubble)newBot(); authoringChip(); } }
-    else if(d.type==='turn'){ if(curBubble){ curBubble.classList.remove('streaming'); var a=curBubble.querySelector('.authoring'); if(a){ a.classList.add('done'); a.innerHTML='\\u2713 lessons ready'; } } curBubble=null; setSending(false); }
+    else if(d.type==='tool'){ if(d.name==='Write'||d.name==='Edit'){ if(!curBubble)newBot(); authoringChip(); } else if(!curBubble){ window.iteacherThinking.tool(log(),d.name); } }
+    else if(d.type==='turn'){ window.iteacherThinking.hide(); if(curBubble){ curBubble.classList.remove('streaming'); var a=curBubble.querySelector('.authoring'); if(a){ a.classList.add('done'); a.innerHTML='\\u2713 lessons ready'; } } curBubble=null; setSending(false); }
     else if(d.type==='error'){ if(!curBubble)newBot(); curTxt.innerHTML=window.iteacherMd(curText+'\\n\\n\\u26a0 '+d.message); curBubble.classList.remove('streaming'); curBubble=null; setSending(false); }
   }
   function openStream(){
@@ -417,14 +419,15 @@ const LIVE_SCRIPT = `(function(){
     var i=document.getElementById('chatinput'); var text=(i&&i.value||'').trim();
     if(!text||sending)return false;
     addUser(text); if(i)i.value=''; setSending(true);
+    window.iteacherThinking.show(log());
     if(!sid){
       fetch('/api/teach/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({topic:text})})
         .then(function(r){return r.json();})
         .then(function(j){ sid=j.sessionId; openStream(); })
-        .catch(function(){ setSending(false); });
+        .catch(function(){ window.iteacherThinking.hide(); setSending(false); });
     } else {
       fetch('/api/teach/'+sid+'/reply',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:text})})
-        .catch(function(){ setSending(false); });
+        .catch(function(){ window.iteacherThinking.hide(); setSending(false); });
     }
     return false;
   };
