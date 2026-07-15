@@ -481,7 +481,7 @@ box-shadow:var(--shadow-sm);padding:24px 26px 22px;margin-bottom:26px}
 letter-spacing:-.03em;color:var(--accent-soft);pointer-events:none;user-select:none}
 .hero-body{position:relative}
 .hero .eyebrow{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--accent);font-weight:500}
-.hero h2{margin:8px 0 14px;font-family:var(--font-display);font-weight:500;font-size:34px;line-height:1.02;letter-spacing:-.01em}
+.hero h2{margin:8px 0 14px;font-family:var(--font-display);font-weight:500;font-size:34px;line-height:1.02;letter-spacing:-.01em;text-wrap:balance}
 .hero-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border)}
 .hero-meta{display:flex;flex-direction:column;gap:6px;min-width:240px}
 .hero .nx{font-size:14.5px;color:var(--text-body)}
@@ -496,7 +496,7 @@ margin:22px 0 10px;display:flex;align-items:center;gap:10px}
 .rail.done-topic{background:var(--surface-sunken);padding:14px 20px}
 .rail .rhd{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
 .rail.done-topic .rhd{margin-bottom:0}
-.rail h3{margin:0;font-family:var(--font-display);font-weight:500;font-size:21px;letter-spacing:-.005em}
+.rail h3{margin:0;font-family:var(--font-display);font-weight:500;font-size:21px;letter-spacing:-.005em;text-wrap:balance}
 /* course-color swatch — the at-a-glance course identity, same accent as the rail's controls */
 .cdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);
 margin-right:10px;vertical-align:2px}
@@ -590,6 +590,40 @@ transform:translateX(-100%);transition:transform var(--dur-base) var(--ease-out)
 body.chat-open .chatpanel{transform:none}
 .wrap{transition:margin-left var(--dur-base) var(--ease-out)}
 @media(min-width:900px){body.chat-open .wrap{margin-left:min(420px,92vw)}}
+/* ── Responsive ──────────────────────────────────────────────────────────
+   The dashboard is desktop-first; these two steps make it hold on tablet and
+   phone. Structural, not fluid (product register): the journey rail turns into
+   a short horizontal scroll region instead of pushing the page wide, and the
+   hero calms and stacks. Desktop (>760px) is untouched. */
+@media(max-width:760px){
+  .wrap{padding:var(--space-md) var(--space-sm) var(--space-2xl)}
+  /* The windowed rail can run wider than a phone; let it scroll sideways in its
+     own box rather than widening the page. The edge mask signals more-to-scroll;
+     the block padding keeps the next-bead glow ring from being clipped by the
+     scroll overflow. */
+  .track{overflow-x:auto;overflow-y:hidden;padding-block:6px;scrollbar-width:thin;
+    scrollbar-color:var(--ghost) transparent;scroll-snap-type:x proximity;
+    -webkit-mask-image:linear-gradient(90deg,#0000,#000 16px,#000 calc(100% - 16px),#0000);
+            mask-image:linear-gradient(90deg,#0000,#000 16px,#000 calc(100% - 16px),#0000)}
+  .track::-webkit-scrollbar{height:6px}
+  .track::-webkit-scrollbar-thumb{background:var(--ghost);border-radius:var(--radius-pill)}
+  .node{scroll-snap-align:start}
+}
+@media(max-width:520px){
+  .wrap{padding:var(--space-sm) var(--space-sm) var(--space-xl)}
+  .topbar{flex-wrap:wrap;row-gap:6px}
+  .roothint{margin-bottom:var(--space-md)}
+  .hero{padding:var(--space-md) var(--space-sm)}
+  .hero-num{font-size:104px;top:-8px;right:2px}
+  .hero h2{font-size:26px;margin-bottom:var(--space-xs)}
+  .hero-foot{flex-direction:column;align-items:stretch;gap:var(--space-sm)}
+  .hero-meta{min-width:0}
+  .hero-foot .btn{justify-content:center}
+  .card{margin:4vh auto;padding:var(--space-lg) var(--space-md) var(--space-md)}
+}
+@media(prefers-reduced-motion:reduce){
+  .track{scroll-behavior:auto}
+}
 ` +
   // Inner conversation styling shared with the study view (message log, bubbles,
   // streaming caret, "authoring…" chip, composer).

@@ -59,6 +59,10 @@ export const TOKENS_CSS = `
 --shadow-glow:0 0 0 4px var(--accent-soft);
 --ease-out:cubic-bezier(.2,.9,.3,1);--ease-pop:cubic-bezier(.2,.9,.3,1.3);
 --dur-fast:120ms;--dur-base:220ms;--dur-slow:500ms;
+/* spacing scale — 4pt base, semantic steps. One shared ramp so rhythm is
+   intentional (tight groupings vs. generous separation) instead of ad hoc. */
+--space-3xs:4px;--space-2xs:8px;--space-xs:12px;--space-sm:16px;
+--space-md:24px;--space-lg:32px;--space-xl:48px;--space-2xl:64px;
 /* journey-rail metrics */
 --bead-size:24px;--node-min:88px;
 }
