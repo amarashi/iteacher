@@ -64,6 +64,22 @@ function main(): void {
     if (open) openBrowser(url);
   });
 
+  // Without an `error` listener, a failed `listen` (most often EADDRINUSE when a
+  // port is already taken) is escalated to an uncaught exception that kills the
+  // process instantly — for the double-click learner that's a console window
+  // that flashes and vanishes with no explanation (#11). A busy 4173 almost
+  // always means iTeacher is already running, so point the browser at the
+  // existing instance and exit cleanly rather than crash.
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      console.log(`iTeacher is already running → ${url}`);
+      if (open) openBrowser(url);
+      process.exit(0);
+    }
+    console.error(`iTeacher could not start: ${err.message}`);
+    process.exit(1);
+  });
+
   installGracefulShutdown(server);
 }
 
