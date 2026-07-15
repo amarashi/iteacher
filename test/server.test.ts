@@ -74,10 +74,11 @@ describe("render surface (#5)", () => {
     expect((await fetch(`${base}/w/nope/lessons/x.html`)).status).toBe(404);
   });
 
-  it("renders the dashboard with the topic and its lesson link", async () => {
+  it("renders the dashboard with the topic and a link into its study view", async () => {
     const html = await (await fetch(`${base}/`)).text();
     expect(html).toContain("Rust");
-    expect(html).toContain("/w/rust/lessons/01-ownership.html");
+    // Lessons open into the split study view (lesson + persistent teacher), not the bare file.
+    expect(html).toContain("/study/rust/lessons/01-ownership.html");
   });
 
   it("wires the live-update SSE subscription into the dashboard page (#12)", async () => {
@@ -106,6 +107,51 @@ describe("render surface (#5)", () => {
       await srv.close();
       cleanup();
     }
+  });
+});
+
+describe("split study view (lesson + persistent teacher)", () => {
+  it("serves a study shell that frames the lesson embedded, beside a teacher chat and a back link", async () => {
+    const html = await (await fetch(`${base}/study/rust/lessons/01-ownership.html`)).text();
+    // The lesson is framed embedded (bridge, no doubled bar) …
+    expect(html).toContain('id="stage"');
+    expect(html).toContain("/w/rust/lessons/01-ownership.html?embed=1");
+    // … the teacher chat is present …
+    expect(html).toContain("Your teacher");
+    expect(html).toContain("/api/teach/tutor");
+    // … and a back-to-dashboard control.
+    expect(html).toContain("← Dashboard");
+  });
+
+  it("falls back to the resume lesson when the study path names no known lesson", async () => {
+    const html = await (await fetch(`${base}/study/rust/lessons/nope.html`)).text();
+    // rust's only authored lesson is 01-ownership, so that's what opens.
+    expect(html).toContain("/w/rust/lessons/01-ownership.html?embed=1");
+  });
+
+  it("404s a study view for an unknown topic", async () => {
+    expect((await fetch(`${base}/study/ghost/lessons/x.html`)).status).toBe(404);
+  });
+
+  it("embeds a lesson without its own top bar, keeping the progress bridge", async () => {
+    const html = await (await fetch(`${base}/w/rust/lessons/01-ownership.html?embed=1`)).text();
+    // Bridge + identity remain, so progress still records inside the frame.
+    expect(html).toContain('name="iteacher-lesson"');
+    expect(html).toContain("/_iteacher/bridge.js");
+    // But the injected top bar is gone — the study shell draws chrome instead.
+    expect(html).not.toContain("iteacher-bar");
+    expect(html).not.toContain("← Dashboard");
+    // The learner's own markup is still untouched.
+    expect(html).toContain('data-exercise-id="quiz-1"');
+  });
+
+  it("rejects a tutor session for an unknown topic", async () => {
+    const res = await fetch(`${base}/api/teach/tutor`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug: "ghost" }),
+    });
+    expect(res.status).toBe(404);
   });
 });
 

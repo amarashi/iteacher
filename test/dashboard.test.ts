@@ -199,14 +199,14 @@ describe("renderDashboard — journey rails (#4)", () => {
     expect(doc.querySelector(".tilde")?.textContent).toContain("~");
   });
 
-  it("links each authored bead to its lesson under the topic slug", () => {
+  it("links each authored bead into the study view under the topic slug", () => {
     const doc = dom(
       model([
         topic({ slug: "rust", state: "in-progress", lessons: [bead("01-ownership.html", "Ownership", "completed"), bead("02.html", "B", "not-started")] }),
       ]),
     );
     const hrefs = [...doc.querySelectorAll(".node a")].map((a) => a.getAttribute("href"));
-    expect(hrefs).toContain("/w/rust/lessons/01-ownership.html");
+    expect(hrefs).toContain("/study/rust/lessons/01-ownership.html");
   });
 
   it("shows a first-run empty state naming the root when there are no topics", () => {

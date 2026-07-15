@@ -24,9 +24,10 @@ import type { CompletionEvent, DashboardModel, TopicModel } from "../store/types
 import { readConfig, writeConfig } from "../store/config.js";
 import { BRIDGE_SOURCE } from "./bridge.js";
 import { createEventStream } from "./events.js";
-import { startSession, replyToSession, subscribe } from "./agent.js";
+import { startSession, startTutorSession, replyToSession, subscribe } from "./agent.js";
 import { injectChrome } from "./render.js";
 import { renderDashboard } from "./dashboard.js";
+import { renderStudy } from "./study.js";
 import { renderWelcome } from "./welcome.js";
 import { journeyLabel } from "./html.js";
 
@@ -113,6 +114,21 @@ export function createApp(config: AppOptions | string): Express {
     serveWorkspaceFile(root, req, res);
   });
 
+  // The split study view: a lesson beside its persistent teacher chat (issue #6+).
+  // `/study/:topic/lessons/<file>` opens that lesson; a missing/unknown file falls
+  // back to the one the learner would resume next.
+  app.get("/study/:topic/*", (req, res) => {
+    if (!root) return res.status(404).send("No root selected");
+    const topic = req.params.topic!;
+    if (!isWorkspace(root, topic)) return res.status(404).send("Unknown topic");
+    const t = deriveDashboard(root).topics.find((x) => x.slug === topic);
+    if (!t || t.lessons.length === 0) return res.redirect("/"); // nothing authored to study yet
+    const rest = (req.params as Record<string, string>)[0] ?? "";
+    const asked = isLessonFile(rest) ? basename(rest) : "";
+    const file = t.lessons.some((l) => l.file === asked) ? asked : resumeFile(t);
+    res.type("html").send(renderStudy(t, file));
+  });
+
   // --- in-app teaching agent (phase-2 host, demo) --------------------------
   // Start a conversation with the teaching agent; it authors into a new
   // workspace folder under the root, and the dashboard's own watch reveals it.
@@ -122,6 +138,18 @@ export function createApp(config: AppOptions | string): Express {
     if (!topic || topic.length > 300) return res.status(400).json({ error: "invalid topic" });
     const { sessionId, slug } = startSession(root, topic);
     res.status(202).json({ sessionId, slug });
+  });
+
+  // Attach to (or begin) the tutor conversation for an existing topic — the teacher
+  // docked beside a lesson in the study view. One session per topic, reused across
+  // lesson navigation and re-opens.
+  app.post("/api/teach/tutor", (req, res) => {
+    if (!root) return res.status(404).json({ error: "no root selected" });
+    const slug = typeof req.body?.slug === "string" ? req.body.slug : "";
+    if (!isWorkspace(root, slug)) return res.status(404).json({ error: "unknown topic" });
+    const lesson = typeof req.body?.lesson === "string" ? req.body.lesson.slice(0, 300) : undefined;
+    const out = startTutorSession(root, slug, lesson);
+    res.status(202).json(out);
   });
 
   // The agent's streamed turn — assistant prose, tool/authoring hints, turn-complete.
@@ -207,7 +235,9 @@ function serveWorkspaceFile(root: string, req: Request, res: Response): void {
   }
 
   if (isLessonFile(rest)) {
-    res.type("html").send(renderLesson(root, topic, basename(rest), abs));
+    // `?embed=1` ⇒ the study shell owns the chrome; inject only meta + bridge.
+    const embed = req.query.embed !== undefined && req.query.embed !== "0";
+    res.type("html").send(renderLesson(root, topic, basename(rest), abs, embed));
     return;
   }
   // Everything else — reference docs, assets, images — served verbatim so the
@@ -215,7 +245,7 @@ function serveWorkspaceFile(root: string, req: Request, res: Response): void {
   res.sendFile(abs);
 }
 
-function renderLesson(root: string, topic: string, file: string, abs: string): string {
+function renderLesson(root: string, topic: string, file: string, abs: string, embed = false): string {
   const html = readFileSync(abs, "utf8");
   const model = deriveDashboard(root);
   const t = model.topics.find((x) => x.slug === topic);
@@ -229,7 +259,14 @@ function renderLesson(root: string, topic: string, file: string, abs: string): s
     progressText: journeyLabel(currentPosition(t, file), t?.journey.plannedTotal ?? 0),
     completed: bead?.state === "completed",
     nextHref: nextLessonHref(topic, t, file),
+    embed,
   });
+}
+
+/** The lesson a study session opens by default: the first unfinished one, else the first. */
+function resumeFile(t: TopicModel): string {
+  const next = t.lessons.find((l) => l.state !== "completed") ?? t.lessons[0]!;
+  return next.file;
 }
 
 /** 1-based position of `file` in teaching order, else one past what's completed. */

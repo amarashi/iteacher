@@ -66,8 +66,18 @@ An Express app over `localhost`:
 - **`GET /w/:topic/<path>`** serves a workspace's files with their on-disk layout
   intact (so teach's relative links resolve). Lesson pages
   (`lessons/*.html`) get a thin **server-injected top bar** and the runtime
-  bridge; everything else is served verbatim. No iframe, no defensive sandbox —
-  lessons are the learner's own same-origin files (#5).
+  bridge; everything else is served verbatim. Lessons are the learner's own
+  **same-origin** files — no defensive sandbox (#5).
+- **`GET /study/:topic/<path>`** is the **split study view** the dashboard opens
+  lessons into: the lesson beside a **persistent teacher chat**, so the learner
+  keeps their teacher while they work. The lesson is framed in a same-origin
+  iframe served with `?embed=1` — the progress bridge without the top bar, since
+  the shell draws the chrome (← Dashboard · progress · Mark complete · Prev/Next).
+  Moving lesson→lesson swaps only the iframe, so the conversation survives. (The
+  iframe is an embedding boundary, not the sandbox that #5 rejected; the lesson
+  is still the learner's own same-origin file.) The chat is a per-topic **tutor**
+  session (`src/server/agent.ts`) scoped to the workspace, read-only so it can
+  explain the lessons without rewriting them.
 - **`GET /_iteacher/bridge.js`** is the runtime bridge (`src/server/bridge.ts`).
 
 ## The lesson runtime (issue #6)

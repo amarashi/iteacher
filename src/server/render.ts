@@ -28,13 +28,20 @@ export interface ChromeContext {
   completed: boolean;
   /** URL of the next lesson in teaching order, for forward-nav (#5). Null at the end. */
   nextHref: string | null;
+  /**
+   * Embedded mode: the lesson is being shown inside the split "study" shell
+   * (an iframe beside the persistent teacher chat). The shell owns the visible
+   * chrome — ← Dashboard, progress, Mark complete, Next — so here we inject only
+   * the identity meta + progress bridge and omit the top bar. Progress still
+   * records exactly as before; the learner just never sees a doubled bar.
+   */
+  embed?: boolean;
 }
 
 const BRIDGE_URL = "/_iteacher/bridge.js";
 
 export function injectChrome(html: string, ctx: ChromeContext): string {
   const head = headMarkup(ctx);
-  const bar = barMarkup(ctx);
 
   let out = html;
 
@@ -45,11 +52,15 @@ export function injectChrome(html: string, ctx: ChromeContext): string {
     out = head + out;
   }
 
-  // Top bar: right after the opening <body>, else prepend.
-  if (/<body\b[^>]*>/i.test(out)) {
-    out = out.replace(/<body\b[^>]*>/i, (m) => `${m}${bar}`);
-  } else {
-    out = bar + out;
+  // Top bar: right after the opening <body>, else prepend. Skipped when embedded
+  // — the study shell draws the bar around the iframe instead.
+  if (!ctx.embed) {
+    const bar = barMarkup(ctx);
+    if (/<body\b[^>]*>/i.test(out)) {
+      out = out.replace(/<body\b[^>]*>/i, (m) => `${m}${bar}`);
+    } else {
+      out = bar + out;
+    }
   }
 
   return out;
@@ -59,7 +70,8 @@ function headMarkup(ctx: ChromeContext): string {
   return (
     `<meta name="iteacher-lesson" data-topic="${attr(ctx.topic)}" data-lesson="${attr(ctx.lesson)}">` +
     `<script src="${BRIDGE_URL}" defer></script>` +
-    `<style>${BAR_CSS}</style>`
+    // The bar CSS is only needed when the bar itself is injected.
+    (ctx.embed ? "" : `<style>${BAR_CSS}</style>`)
   );
 }
 

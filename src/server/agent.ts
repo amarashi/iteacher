@@ -42,6 +42,7 @@ interface Session {
   listeners: Set<Listener>;
   busy: boolean; // a turn is currently streaming
   history: TeachEvent[]; // replayed to a listener that attaches mid-stream
+  allowedTools: string[]; // tools this session's agent may use
 }
 
 // A native `claude.exe` on Windows — spawn it directly (no shell), so stdin pipes
@@ -52,8 +53,14 @@ const TEACH_MODEL = process.env.ITEACHER_TEACH_MODEL || "claude-sonnet-5";
 // The teaching agent authors files and invokes the teach skill; it does not need
 // shell or the web for a snappy demo. `acceptEdits` auto-approves Write/Edit.
 const ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Skill"];
+// The in-lesson tutor only *answers* — it reads the workspace to ground its help
+// but never authors, so it can't clobber a lesson the learner is in the middle of.
+const TUTOR_TOOLS = ["Read", "Glob", "Grep", "Skill"];
 
 const sessions = new Map<string, Session>();
+// One live tutor session per topic slug, so re-opening a lesson (or navigating
+// lesson→lesson) keeps the same conversation instead of spawning a new teacher.
+const tutorBySlug = new Map<string, string>();
 
 /** Free-text topic → filesystem-safe slug. */
 function slugify(topic: string): string {
@@ -81,11 +88,53 @@ export function startSession(root: string, topic: string): { sessionId: string; 
   const dir = join(root, slug);
   mkdirSync(dir, { recursive: true });
 
-  const session: Session = { id, slug, dir, listeners: new Set(), busy: false, history: [] };
+  const session: Session = {
+    id,
+    slug,
+    dir,
+    listeners: new Set(),
+    busy: false,
+    history: [],
+    allowedTools: ALLOWED_TOOLS,
+  };
   sessions.set(id, session);
 
   runTurn(session, startPrompt(topic), false);
   return { sessionId: id, slug };
+}
+
+/**
+ * Begin (or re-attach to) the tutor conversation for an *existing* topic — the
+ * teacher docked beside a lesson in the study view. Unlike {@link startSession},
+ * it runs in the topic's own folder (no new workspace), authors nothing, and is
+ * one-per-slug: opening a second lesson in the same topic resumes the same chat.
+ */
+export function startTutorSession(
+  root: string,
+  slug: string,
+  lessonTitle?: string,
+): { sessionId: string; slug: string; existing: boolean } {
+  const existingId = tutorBySlug.get(slug);
+  if (existingId && sessions.has(existingId)) {
+    return { sessionId: existingId, slug, existing: true };
+  }
+
+  const id = randomUUID();
+  const dir = join(root, slug);
+  const session: Session = {
+    id,
+    slug,
+    dir,
+    listeners: new Set(),
+    busy: false,
+    history: [],
+    allowedTools: TUTOR_TOOLS,
+  };
+  sessions.set(id, session);
+  tutorBySlug.set(slug, id);
+
+  runTurn(session, tutorPrompt(lessonTitle), false);
+  return { sessionId: id, slug, existing: false };
 }
 
 /** Send the user's reply into an existing session and stream the agent's next turn. */
@@ -126,7 +175,7 @@ function runTurn(session: Session, prompt: string, resume: boolean): void {
     "--permission-mode",
     "acceptEdits",
     "--allowed-tools",
-    ...ALLOWED_TOOLS,
+    ...session.allowedTools,
     resume ? "--resume" : "--session-id",
     session.id,
   ];
@@ -218,4 +267,15 @@ This is a live, in-app teaching session, so behave conversationally:
        5. **Title** — one-line gist. [planned]
 - Keep it snappy for a live demo: rely on your own knowledge, do NOT browse the web, do NOT run shell commands, do NOT open a browser.
 - Speak in a warm, concise, encouraging voice throughout.`;
+}
+
+/** The in-lesson tutor's opening instruction: answer questions about THIS workspace. */
+function tutorPrompt(lessonTitle?: string): string {
+  const onLesson = lessonTitle ? ` I'm currently on the lesson "${lessonTitle}".` : "";
+  return `You are my teacher for the topic in THIS directory. I'm studying it right now inside the iTeacher app, with your chat docked beside the lesson.${onLesson}
+
+- Greet me warmly in ONE short line and invite me to ask about anything I'm stuck on. Then STOP and wait for my question — do not lecture yet.
+- When I ask something, you may read this workspace to answer in context: the lesson files in ./lessons/, plus MISSION.md and SYLLABUS.md (use Read/Glob/Grep). Ground your answer in what I'm actually learning.
+- Answer like a patient tutor: concise and warm, one idea at a time, with a concrete example when it helps. Ask me only one question at a time.
+- You are here to HELP ME UNDERSTAND, not to write lessons. Do NOT create or edit any files, do NOT browse the web, do NOT run shell commands.`;
 }

@@ -16,6 +16,7 @@
 import type { DashboardModel, TopicModel, LessonBead } from "../store/types.js";
 import { esc, attr, journeyLabel } from "./html.js";
 import { TOKENS_CSS } from "./tokens.js";
+import { CHAT_CSS } from "./chat.js";
 
 const AHEAD = 3; // beads to draw past the next-up lesson before collapsing to a cap
 const BEHIND = 1; // recent completed beads to keep for context
@@ -147,7 +148,7 @@ function railTrack(t: TopicModel): string {
 function authoredNode(t: TopicModel, i: number, lesson: LessonBead, isNext: boolean): string {
   const cls = isNext ? "next" : lesson.state === "completed" ? "done" : "";
   const label = lesson.state === "completed" ? "✓" : isNext ? "›" : String(i + 1);
-  const href = `/w/${encodeURIComponent(t.slug)}/lessons/${encodeURIComponent(lesson.file)}`;
+  const href = `/study/${encodeURIComponent(t.slug)}/lessons/${encodeURIComponent(lesson.file)}`;
   return `<div class="node ${cls}"><a href="${href}"><div class="bead">${label}</div><div class="cap">${esc(lesson.title)}</div></a></div>`;
 }
 
@@ -183,7 +184,9 @@ function nextHref(t: TopicModel): string {
   const i = nextLessonIndex(t);
   const next = i >= 0 ? t.lessons[i] : t.lessons[0];
   if (!next) return "#";
-  return `/w/${encodeURIComponent(t.slug)}/lessons/${encodeURIComponent(next.file)}`;
+  // Open into the split study view (lesson + persistent teacher chat), not the
+  // bare served file — so the learner keeps their teacher beside the lesson.
+  return `/study/${encodeURIComponent(t.slug)}/lessons/${encodeURIComponent(next.file)}`;
 }
 
 const STATE_LABEL: Record<LessonBead["state"], string> = {
@@ -569,30 +572,7 @@ transform:translateX(-100%);transition:transform var(--dur-base) var(--ease-out)
 body.chat-open .chatpanel{transform:none}
 .wrap{transition:margin-left var(--dur-base) var(--ease-out)}
 @media(min-width:900px){body.chat-open .wrap{margin-left:min(420px,92vw)}}
-.chathd{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--border)}
-.chateyebrow{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:600}
-.chatx{background:none;border:none;font-size:22px;line-height:1;color:var(--text-faint);cursor:pointer;padding:0 4px}
-.chatlog{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
-.msg{display:flex}.msg.me{justify-content:flex-end}
-.bubble{max-width:82%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.5;
-white-space:pre-wrap;overflow-wrap:anywhere}
-.msg.bot .bubble{background:var(--surface-sunken);color:var(--text-strong);border-bottom-left-radius:4px}
-.msg.me .bubble{background:var(--accent);color:var(--accent-contrast);border-bottom-right-radius:4px}
-.bubble .hint{display:block;margin-top:4px;color:var(--text-faint);font-size:12px}
-.bubble.streaming .txt:after{content:"▋";margin-left:1px;color:var(--accent);animation:blink 1s steps(2) infinite}
-@keyframes blink{50%{opacity:0}}
-.authoring{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);
-font-size:12px;color:var(--accent);font-weight:600}
-.authoring.done{color:var(--status-done)}
-.dots{display:inline-flex;gap:3px}
-.dots i{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite}
-.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
-@keyframes pulse{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
-.chatform{display:flex;gap:8px;padding:14px;border-top:1px solid var(--border);align-items:flex-end}
-.chatform textarea{flex:1;resize:none;max-height:120px;border:1px solid var(--border);border-radius:12px;
-padding:10px 12px;font-family:var(--font-ui);font-size:13.5px;line-height:1.4;color:var(--text-strong);background:var(--surface)}
-.chatform textarea:focus{outline:none;border-color:var(--accent);box-shadow:var(--shadow-glow)}
-.send{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:none;background:var(--accent);
-color:var(--accent-contrast);font-size:18px;cursor:pointer}
-.send:disabled{opacity:.45;cursor:default}
-`;
+` +
+  // Inner conversation styling shared with the study view (message log, bubbles,
+  // streaming caret, "authoring…" chip, composer).
+  CHAT_CSS;
