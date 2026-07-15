@@ -74,7 +74,7 @@ function hero(lead: TopicModel | undefined): string {
       <h2>${esc(lead.title)}</h2>
       <div class="hero-foot">
         <div class="hero-meta">
-          <span class="nx"><span class="nx-lbl">Next</span><b>${esc(next)}</b></span>
+          <span class="nx"><span class="nx-lbl">Next:</span><b>${esc(next)}</b></span>
           <span class="meta">${journeyText(lead)} · ${lead.homeworksDone} ${plural("homework", lead.homeworksDone)} · <span class="provisional-tag">provisional</span></span>
         </div>
         <a class="btn" href="${nextHref(lead)}">Open lesson <span aria-hidden="true">&rarr;</span></a>
@@ -485,11 +485,16 @@ letter-spacing:-.03em;color:var(--accent-soft);pointer-events:none;user-select:n
 .hero-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border)}
 .hero-meta{display:flex;flex-direction:column;gap:6px;min-width:240px}
 .hero .nx{font-size:14.5px;color:var(--text-body)}
-.hero .nx-lbl{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-faint);margin-right:8px}
+/* Plain inline lead-in, not a second kicker: the hero already carries one
+   mono-uppercase eyebrow above the title — stacking another tracked micro-label
+   here is the repetition tell. Quiet sentence-case label instead. */
+.hero .nx-lbl{font-size:12.5px;color:var(--text-faint);margin-right:7px}
 .hero .nx b{font-weight:600;color:var(--text-strong)}
 .hero .meta{font-family:var(--font-mono);font-size:11.5px;color:var(--text-muted);letter-spacing:.02em}
-.grouphd{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);font-weight:700;
-margin:22px 0 10px;display:flex;align-items:center;gap:10px}
+/* Quiet section label + hairline rule, not a tracked all-caps kicker on every
+   group. The rule does the dividing; the label just names the group. */
+.grouphd{font-size:12px;letter-spacing:0;color:var(--text-muted);font-weight:600;
+margin:22px 0 10px;display:flex;align-items:center;gap:12px}
 .grouphd::after{content:"";flex:1;height:1px;background:var(--border)}
 /* topic card / rail — flat, hairline, display title */
 .rail{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:14px}
@@ -512,7 +517,11 @@ z-index:1;display:flex;align-items:center;justify-content:center;font-size:11px;
 .node.next .bead{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow-glow)}
 .node.ghost .bead{border-style:dashed;border-color:var(--ghost);opacity:.75}
 .node .cap{font-size:11px;text-align:center;color:var(--text-muted);max-width:84px;line-height:1.3}
-.node.next .cap{color:var(--text-strong);font-weight:600}.node.ghost .cap{color:var(--ghost)}
+.node.next .cap{color:var(--text-strong);font-weight:600}
+/* planned-but-unauthored node: "not yet here" is carried by the dashed bead and
+   its dimmed ring — the caption itself stays legible (--ghost is a 2.3:1 border
+   tint, unreadable as text). */
+.node.ghost .cap{color:var(--text-faint)}
 .cap-node{min-width:auto;justify-content:center;padding-top:2px}
 .cap-node .capend{font-size:11px;color:var(--text-faint);white-space:nowrap;padding:5px 10px;
 border:1px dashed var(--border);border-radius:var(--radius-pill)}

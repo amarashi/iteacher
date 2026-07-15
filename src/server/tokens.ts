@@ -31,10 +31,14 @@ export const TOKENS_CSS = `
 /* gold — signature primary action + achievement/mastery */
 --gold-500:oklch(.82 .135 84);--gold-600:oklch(.88 .12 86);
 --gold-soft:oklch(.82 .135 84 / .18);--gold-ink:oklch(.24 .05 90);
-/* neutrals — a blue-black ramp (dark → light), tinted toward the brand hue */
+/* neutrals — a blue-black ramp (dark → light), tinted toward the brand hue.
+   ghost-300 is a decorative-only role (dashed placeholder beads, scrollbar
+   thumb); it is never used as text. dim-400 is the faint *text* floor: at L .65
+   it clears WCAG AA (≥4.5:1) as small text even on the raised sunken surface, so
+   every faint label stays legible while still reading a clear step below muted. */
 --ink-050:oklch(.165 .022 262);--ink-075:oklch(.215 .026 262);--ink-100:oklch(.265 .028 262);
 --line-200:oklch(.315 .024 262);--ghost-300:oklch(.42 .026 262);
---dim-400:oklch(.60 .022 260);--dim-500:oklch(.72 .02 260);
+--dim-400:oklch(.65 .022 260);--dim-500:oklch(.72 .02 260);
 --fg-700:oklch(.89 .012 250);--fg-900:oklch(.97 .006 250);
 /* semantic status — done=gold (earned), in-progress=cyan (live), todo=muted */
 --done-500:var(--gold-500);--done-soft:var(--gold-soft);
@@ -51,6 +55,16 @@ export const TOKENS_CSS = `
 --status-done-contrast:var(--gold-ink);
 --status-progress:var(--progress-500);--status-progress-soft:var(--progress-soft);
 --status-todo:var(--todo-500);--status-todo-soft:var(--todo-soft);
+/* feedback semantics — validation & system messages, tuned for the dark canvas.
+   A separate axis from the progress palette above: these speak to input and
+   system state, not course completion. Each luminous fg clears ≥4.5:1 on --bg
+   and --surface; warning is a saturated orange (hue 60) held clear of
+   achievement-gold (hue 84) so "caution" never reads as "earned". Every role
+   pairs the fg with a soft translucent fill and a deep same-hue ink for text on
+   a solid fill (white text fails on all three). */
+--error:oklch(.70 .19 25);--error-soft:oklch(.70 .19 25 / .16);--error-contrast:oklch(.24 .06 25);
+--warning:oklch(.80 .155 60);--warning-soft:oklch(.80 .155 60 / .16);--warning-contrast:oklch(.24 .06 60);
+--success:oklch(.80 .15 150);--success-soft:oklch(.80 .15 150 / .16);--success-contrast:oklch(.24 .06 150);
 --link:var(--blue-500);--link-hover:var(--blue-600);
 /* radii / borders / shadows / motion */
 --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-pill:999px;
