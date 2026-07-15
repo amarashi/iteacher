@@ -210,16 +210,19 @@ function chip(state: LessonBead["state"]): string {
 function emptyState(root: string): string {
   // Single source for the starter prompt: the copied text (`data-copy`) and the
   // shown text must stay byte-identical, so derive the highlighted markup from the
-  // same plaintext rather than writing it twice.
-  const prompt = "Teach me <your topic>. Use the teach skill.";
+  // same plaintext rather than writing it twice. The prompt tells Claude Code to
+  // work in a per-topic *subfolder* — iTeacher reads one topic per immediate
+  // subfolder of the root (each with its own MISSION.md), so a workspace authored
+  // directly in the root would never surface as a topic.
+  const prompt = "Teach me <your topic>. Make a subfolder for it here and teach me in there — use the teach skill.";
   const promptShown = esc(prompt).replace("&lt;your topic&gt;", `<span class="fill">&lt;your topic&gt;</span>`);
 
   return `<div class="guided">
     <div class="card dashed">
       <p class="brand">No topics yet</p>
       <h2>Ask Claude Code to teach you something</h2>
-      <p>iTeacher shows a topic for each lesson-workspace in your folder. Claude Code
-         writes them — here's the whole hand-off:</p>
+      <p>iTeacher shows a topic for each subfolder in your folder. Claude Code
+         writes one per topic — here's the whole hand-off:</p>
       <ol class="steps">
         <li>
           <div class="lbl">Open a terminal in your iTeacher folder:</div>
