@@ -103,6 +103,24 @@ Reuse is the default, not the exception. Before authoring a lesson, read `./asse
 
 A shared stylesheet is the first component every workspace earns: every lesson links it, so the lessons look like one consistent course rather than a pile of one-offs. As the workspace grows, so should the component library.
 
+### Course color
+
+Every course is assigned **one accent color by the iTeacher app**, drawn from a fixed five-blue palette:
+
+| Hex       | RGB             |
+| --------- | --------------- |
+| `#00ddff` | (0, 221, 255)   |
+| `#00b8ff` | (0, 184, 255)   |
+| `#0097e1` | (0, 151, 225)   |
+| `#004fa7` | (0, 79, 167)    |
+| `#092b80` | (9, 43, 128)    |
+
+The app derives the assignment deterministically from the workspace folder name and uses it everywhere the course appears — its dashboard rail, the study view, and the top bar of every served lesson. Your lessons must carry the **same** color as their single accent, so each course reads as one visual identity:
+
+- **In-app teaching sessions are told the assigned hex in their opening prompt** — use exactly that value; never pick a different one.
+- **In CSS, write the accent as `var(--course-accent, <hex>)`** (the shared stylesheet is the right home for it). The app injects `--course-accent` — plus `--course-accent-hover`, `--course-accent-soft`, and `--course-accent-contrast` (the readable text color to use *on* the accent) — into every lesson page it serves, so a served lesson always matches the app's assignment. The fallback hex only matters when the file is opened outside the app; if you weren't told the assignment, use a palette color that fits as the fallback.
+- **Don't introduce competing accent hues.** Neutrals + the course accent (and, where needed, semantic status colors like the greens/ambers the app uses for done/in-progress) are the whole lesson palette.
+
 ### Illustrations
 
 There is a ready-made library of warm, cosy illustrations you can pull into lessons — handcrafted 3D-clay / felt miniatures in a matte pastel palette, plus two sheets of small object- and UI-icons. They live outside this repo at:

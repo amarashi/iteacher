@@ -25,6 +25,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { courseTheme } from "./theme.js";
 
 /** A streamed event from a teaching turn, forwarded to the browser over SSE. */
 export type TeachEvent =
@@ -120,7 +121,7 @@ export function startSession(root: string, topic: string): { sessionId: string; 
   };
   sessions.set(id, session);
 
-  runTurn(session, startPrompt(topic), false);
+  runTurn(session, startPrompt(topic, slug), false);
   return { sessionId: id, slug };
 }
 
@@ -270,7 +271,10 @@ function handleLine(session: Session, line: string): void {
 }
 
 /** The opening instruction: interview briefly, then author an iTeacher-shaped workspace. */
-function startPrompt(topic: string): string {
+function startPrompt(topic: string, slug: string): string {
+  // The app's color assignment for this course (see theme.ts) — stated to the
+  // agent so the lessons it authors carry the same accent the app shows.
+  const c = courseTheme(slug);
   return `I want to learn: ${topic}
 
 You are my teacher, following the iTeacher "teach" method. Treat THIS directory as the teaching workspace. ${teachGuideDirective()}
@@ -286,6 +290,7 @@ This is a live, in-app teaching session, so behave conversationally:
        3. **Title** — one-line gist. [authored: 0003-....html]
        4. **Title** — one-line gist. [planned]
        5. **Title** — one-line gist. [planned]
+- Course color: the app has assigned this course the accent ${c.accent} (RGB ${c.rgb}) from its fixed course palette. Use exactly this hex as the ONE accent color in every lesson — headings, links, buttons, highlights, interactive checks — over a clean neutral base. In lesson CSS write it as var(--course-accent, ${c.accent}): the app injects --course-accent (plus --course-accent-hover, --course-accent-soft, and --course-accent-contrast for text on the accent) into every served lesson page, so your lessons and the app's chrome always match. Do not introduce competing accent hues.
 - Keep it snappy for a live demo: rely on your own knowledge, do NOT browse the web, do NOT run shell commands, do NOT open a browser.
 - Speak in a warm, concise, encouraging voice throughout.`;
 }

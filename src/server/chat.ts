@@ -10,7 +10,10 @@
  * (fixed slide-in vs. grid column) and appends this.
  */
 export const CHAT_CSS = `
-.chathd{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--border)}
+.chathd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border)}
+.chatwho{display:flex;align-items:center;gap:10px;min-width:0}
+.chatavatar{width:34px;height:34px;flex:0 0 auto;object-fit:contain;border-radius:50%;background:var(--surface-sunken);
+padding:2px;box-shadow:var(--shadow-glow)}
 .chateyebrow{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:600}
 .chatx{background:none;border:none;font-size:22px;line-height:1;color:var(--text-faint);cursor:pointer;padding:0 4px;text-decoration:none}
 .chatlog{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
@@ -22,12 +25,17 @@ white-space:pre-wrap;overflow-wrap:anywhere}
 .bubble .hint{display:block;margin-top:4px;color:var(--text-faint);font-size:12px}
 .bubble.streaming .txt:after{content:"▋";margin-left:1px;color:var(--accent);animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
-/* "Teacher is working" bubble — shown from send until the reply starts streaming. */
+/* "Teacher is working" bubble — shown from send until the reply starts streaming.
+   A pose-per-state mascot stands beside the bubble; its src is swapped by iteacherThinking. */
+.msg.thinking{align-items:flex-end;gap:9px}
+.msg.thinking .tmascot{width:46px;height:46px;flex:0 0 auto;object-fit:contain}
 .msg.thinking .bubble{display:flex;align-items:center;gap:8px;color:var(--text-muted)}
 .msg.thinking .tlabel{font-size:12.5px;font-style:italic}
 .authoring{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);
 font-size:12px;color:var(--accent);font-weight:600}
 .authoring.done{color:var(--status-done)}
+/* The thumbs-up mascot that replaces the checkmark once lessons are authored. */
+.authoring .doneart{width:24px;height:24px;flex:0 0 auto;object-fit:contain}
 .dots{display:inline-flex;gap:3px}
 .dots i{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite}
 .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
@@ -109,27 +117,32 @@ export const CHAT_MD_JS = `(function(){
  * template-string style as CHAT_MD_JS; exposes `window.iteacherThinking`.
  */
 export const CHAT_THINKING_JS = `(function(){
-  var node=null, txt=null;
-  function labelFor(name){
-    if(name==='Write'||name==='Edit'||name==='NotebookEdit')return 'writing\\u2026';
-    if(name==='Read'||name==='Grep'||name==='Glob')return 'reading\\u2026';
-    if(name==='TodoWrite')return 'planning\\u2026';
-    return 'working\\u2026';
+  var node=null, txt=null, mascot=null;
+  // Each state pairs a caption with a mascot pose (assets/<pose>.png): reading a
+  // book, jotting on a clipboard, ideating under a lightbulb, teaching with a
+  // raised finger, or the default contemplative point.
+  function stateFor(name){
+    if(name==='Write'||name==='Edit'||name==='NotebookEdit')return ['writing\\u2026','planning'];
+    if(name==='Read'||name==='Grep'||name==='Glob')return ['reading\\u2026','reading'];
+    if(name==='TodoWrite')return ['planning\\u2026','ideating'];
+    return ['working\\u2026','teaching'];
   }
   window.iteacherThinking={
-    show:function(log,label){
+    show:function(log,label,pose){
       if(!log)return;
       if(!node){
         node=document.createElement('div'); node.className='msg bot thinking';
+        mascot=document.createElement('img'); mascot.className='tmascot'; mascot.alt=''; mascot.setAttribute('aria-hidden','true');
         var b=document.createElement('div'); b.className='bubble';
         b.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
         txt=document.createElement('span'); txt.className='tlabel';
-        b.appendChild(txt); node.appendChild(b);
+        b.appendChild(txt); node.appendChild(mascot); node.appendChild(b);
       }
+      mascot.src='/assets/'+(pose||'thinking')+'.png';
       txt.textContent=label||'Thinking\\u2026';
       log.appendChild(node); log.scrollTop=log.scrollHeight;
     },
-    tool:function(log,name){ this.show(log,labelFor(name)); },
+    tool:function(log,name){ var s=stateFor(name); this.show(log,s[0],s[1]); },
     hide:function(){ if(node&&node.parentNode)node.parentNode.removeChild(node); }
   };
 })();`;

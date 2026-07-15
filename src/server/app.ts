@@ -18,7 +18,8 @@
 
 import express, { type Express, type Request, type Response } from "express";
 import { readFileSync, existsSync, statSync, mkdirSync } from "node:fs";
-import { join, resolve, relative, isAbsolute, basename } from "node:path";
+import { join, resolve, relative, isAbsolute, basename, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { deriveDashboard, recordCompletion } from "../store/index.js";
 import type { CompletionEvent, DashboardModel, TopicModel } from "../store/types.js";
 import { readConfig, writeConfig } from "../store/config.js";
@@ -52,6 +53,9 @@ export interface AppOptions {
  * first-run entirely (used by the render/runtime tests, and equivalent to an
  * override).
  */
+/** The teacher-mascot art folder at the repo root (see the /assets route below). */
+const ASSETS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../assets");
+
 export function createApp(config: AppOptions | string): Express {
   const opts: AppOptions =
     typeof config === "string" ? { configPath: "", defaultRoot: config, override: config } : config;
@@ -70,6 +74,12 @@ export function createApp(config: AppOptions | string): Express {
   app.get("/_iteacher/bridge.js", (_req, res) => {
     res.type("application/javascript").send(BRIDGE_SOURCE);
   });
+
+  // The teacher-mascot illustrations (assets/*.png) that decorate the chat — a
+  // greeting face in the header and pose-per-state art in the "working" bubble.
+  // The folder sits at the repo root; both src/server (tsx) and dist/server
+  // (build) are two levels beneath it, so ../../assets resolves in either layout.
+  app.use("/assets", express.static(ASSETS_DIR, { maxAge: "1h", fallthrough: false }));
 
   app.get("/api/events", streamEvents);
 

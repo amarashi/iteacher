@@ -215,6 +215,16 @@ describe("renderDashboard — journey rails (#4)", () => {
     expect(doc.querySelector(".rail")).toBeNull();
   });
 
+  it("themes each rail with its course palette color", () => {
+    const doc = dom(
+      model([topic({ slug: "rust", state: "in-progress", lessons: [bead("01.html", "A", "in-progress")] })]),
+    );
+    const style = doc.querySelector(".rail")?.getAttribute("style") ?? "";
+    expect(style).toMatch(/--accent:#(00ddff|00b8ff|0097e1|004fa7|092b80)/);
+    // The swatch dot that makes the course color visible at a glance.
+    expect(doc.querySelector(".rail .cdot")).not.toBeNull();
+  });
+
   it("escapes topic titles", () => {
     const html = renderDashboard(model([topic({ slug: "x", title: "A <script> & B", state: "in-progress", lessons: [bead("01.html", "L", "in-progress")] })]));
     // The malicious title must not survive unescaped (the page's own live-update

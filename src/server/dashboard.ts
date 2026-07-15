@@ -16,6 +16,7 @@
 import type { DashboardModel, TopicModel, LessonBead } from "../store/types.js";
 import { esc, attr, journeyLabel } from "./html.js";
 import { TOKENS_CSS } from "./tokens.js";
+import { themeVars } from "./theme.js";
 import { CHAT_CSS, CHAT_MD_JS, CHAT_THINKING_JS } from "./chat.js";
 
 const AHEAD = 3; // beads to draw past the next-up lesson before collapsing to a cap
@@ -66,7 +67,7 @@ function hero(lead: TopicModel | undefined): string {
   const next = nextLessonTitle(lead) ?? lead.nextUp ?? "Continue";
   // A big ghosted lesson numeral as a graphic accent (the lesson you're about to do).
   const numeral = String(lead.lessonsCompleted + 1).padStart(2, "0");
-  return `<div class="hero">
+  return `<div class="hero" style="${themeVars(lead.slug)}">
     <span class="hero-num" aria-hidden="true">${numeral}</span>
     <div class="hero-body">
       <span class="eyebrow">Continue where you left off</span>
@@ -86,8 +87,8 @@ function hero(lead: TopicModel | undefined): string {
 
 function rail(t: TopicModel): string {
   if (t.lessonsAuthored === 0) return railNew(t);
-  return `<div class="rail">
-    <div class="rhd"><h3>${esc(t.title)}</h3>${chip(t.state)}</div>
+  return `<div class="rail" style="${themeVars(t.slug)}">
+    <div class="rhd"><h3>${cdot()}${esc(t.title)}</h3>${chip(t.state)}</div>
     ${railTrack(t)}
     <div class="foot">
       <span class="metric"><b>${t.lessonsCompleted}</b>/${t.lessonsAuthored} lessons</span>
@@ -100,17 +101,17 @@ function rail(t: TopicModel): string {
 }
 
 function railNew(t: TopicModel): string {
-  return `<div class="rail newtopic">
-    <div class="rhd"><h3>${esc(t.title)}</h3>${chip(t.state)}</div>
+  return `<div class="rail newtopic" style="${themeVars(t.slug)}">
+    <div class="rhd"><h3>${cdot()}${esc(t.title)}</h3>${chip(t.state)}</div>
     <div class="ghostbeads"><span></span><span></span><span></span></div>
     <div class="body">Mission set — no lessons authored yet. The journey is drawn once teaching begins.</div>
   </div>`;
 }
 
 function railDone(t: TopicModel): string {
-  return `<div class="rail done-topic">
+  return `<div class="rail done-topic" style="${themeVars(t.slug)}">
     <div class="rhd">
-      <h3>${esc(t.title)} <span class="donemeta">· ${t.lessonsAuthored} ${plural("lesson", t.lessonsAuthored)} · ${t.homeworksDone} ${plural("homework", t.homeworksDone)}</span></h3>
+      <h3>${cdot()}${esc(t.title)} <span class="donemeta">· ${t.lessonsAuthored} ${plural("lesson", t.lessonsAuthored)} · ${t.homeworksDone} ${plural("homework", t.homeworksDone)}</span></h3>
       ${chip(t.state)}
     </div>
   </div>`;
@@ -199,6 +200,11 @@ function chip(state: LessonBead["state"]): string {
   return `<span class="chip ${state}"><span class="dot"></span>${STATE_LABEL[state]}</span>`;
 }
 
+/** The course-color swatch beside a rail title (reads `--accent` from the themed rail). */
+function cdot(): string {
+  return `<span class="cdot" aria-hidden="true"></span>`;
+}
+
 // --- guided-lite hand-off empty state (#13, from #7b) ----------------------
 
 /**
@@ -261,7 +267,10 @@ function chatPanel(): string {
   return `<div class="scrim" onclick="iteacherCloseChat()"></div>
 <aside class="chatpanel" id="chatpanel" aria-hidden="true">
   <div class="chathd">
-    <span class="chateyebrow">✦ Your teacher</span>
+    <span class="chatwho">
+      <img class="chatavatar" src="/assets/greeting.png" alt="" aria-hidden="true">
+      <span class="chateyebrow">✦ Your teacher</span>
+    </span>
     <button class="chatx" type="button" onclick="iteacherCloseChat()" aria-label="Close">×</button>
   </div>
   <div class="chatlog" id="chatlog">
@@ -406,7 +415,7 @@ const LIVE_SCRIPT = `(function(){
   function onTeach(d){
     if(d.type==='text'){ if(!curBubble)newBot(); curText+=d.text; curTxt.innerHTML=window.iteacherMd(curText); scroll(); }
     else if(d.type==='tool'){ if(d.name==='Write'||d.name==='Edit'){ if(!curBubble)newBot(); authoringChip(); } else if(!curBubble){ window.iteacherThinking.tool(log(),d.name); } }
-    else if(d.type==='turn'){ window.iteacherThinking.hide(); if(curBubble){ curBubble.classList.remove('streaming'); var a=curBubble.querySelector('.authoring'); if(a){ a.classList.add('done'); a.innerHTML='\\u2713 lessons ready'; } } curBubble=null; setSending(false); }
+    else if(d.type==='turn'){ window.iteacherThinking.hide(); if(curBubble){ curBubble.classList.remove('streaming'); var a=curBubble.querySelector('.authoring'); if(a){ a.classList.add('done'); a.innerHTML='<img class="doneart" src="/assets/encouraging.png" alt="" aria-hidden="true"> lessons ready'; } } curBubble=null; setSending(false); }
     else if(d.type==='error'){ if(!curBubble)newBot(); curTxt.innerHTML=window.iteacherMd(curText+'\\n\\n\\u26a0 '+d.message); curBubble.classList.remove('streaming'); curBubble=null; setSending(false); }
   }
   function openStream(){
@@ -486,6 +495,9 @@ margin:22px 0 10px;display:flex;align-items:center;gap:10px}
 .rail .rhd{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
 .rail.done-topic .rhd{margin-bottom:0}
 .rail h3{margin:0;font-family:var(--font-display);font-weight:500;font-size:21px;letter-spacing:-.005em}
+/* course-color swatch — the at-a-glance course identity, same accent as the rail's controls */
+.cdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);
+margin-right:10px;vertical-align:2px}
 .donemeta{font-family:var(--font-mono);color:var(--text-muted);font-weight:400;font-size:11px;letter-spacing:.02em}
 .track{display:flex;align-items:flex-start;gap:0}
 .node{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:var(--node-min);position:relative;flex:0 0 auto}

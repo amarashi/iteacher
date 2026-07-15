@@ -3,5 +3,6 @@ node_modules/
 dist/
 __pycache__/
 .scratch/
+.playwright-mcp/
 *.pyc
 .DS_Store

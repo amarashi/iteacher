@@ -16,6 +16,7 @@
 import type { TopicModel } from "../store/types.js";
 import { esc, attr, journeyLabel } from "./html.js";
 import { TOKENS_CSS } from "./tokens.js";
+import { themeVars } from "./theme.js";
 import { CHAT_CSS, CHAT_MD_JS, CHAT_THINKING_JS } from "./chat.js";
 
 /** Render the study shell for `topic`, opened on lesson `currentFile`. */
@@ -41,11 +42,14 @@ export function renderStudy(topic: TopicModel, currentFile: string): string {
 <title>${esc(topic.title)} · iTeacher</title>
 <style>${STUDY_CSS}</style>
 </head>
-<body>
+<body style="${themeVars(topic.slug)}">
 <div class="study">
   <aside class="teacher">
     <div class="chathd">
-      <span class="chateyebrow">✦ Your teacher</span>
+      <span class="chatwho">
+        <img class="chatavatar" src="/assets/greeting.png" alt="" aria-hidden="true">
+        <span class="chateyebrow">✦ Your teacher</span>
+      </span>
       <a class="chatx" href="/" title="Back to dashboard" aria-label="Back to dashboard">×</a>
     </div>
     <div class="chatlog" id="chatlog">
@@ -60,7 +64,7 @@ export function renderStudy(topic: TopicModel, currentFile: string): string {
     <div class="stagebar">
       <a class="back" href="/">← Dashboard</a>
       <div class="stagemeta">
-        <span class="topic">${esc(topic.title)}</span>
+        <span class="topic"><span class="cdot" aria-hidden="true"></span>${esc(topic.title)}</span>
         <span class="sep">·</span>
         <span class="lesson" id="lessonTitle"></span>
         <span class="progress" id="progress"></span>
@@ -196,6 +200,7 @@ border-bottom:1px solid var(--border);font-size:13px}
 .stagebar .back:hover{color:var(--accent)}
 .stagemeta{display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden}
 .stagemeta .topic{font-weight:600;color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:1px}
 .stagemeta .lesson{color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stagemeta .sep{color:var(--border)}
 .stagemeta .progress{margin-left:auto;color:var(--text-faint);font-family:var(--font-mono);font-size:11px;

@@ -14,6 +14,7 @@
  */
 
 import { esc, attr } from "./html.js";
+import { courseVarsCss } from "./theme.js";
 
 export interface ChromeContext {
   topic: string;
@@ -70,6 +71,12 @@ function headMarkup(ctx: ChromeContext): string {
   return (
     `<meta name="iteacher-lesson" data-topic="${attr(ctx.topic)}" data-lesson="${attr(ctx.lesson)}">` +
     `<script src="${BRIDGE_URL}" defer></script>` +
+    // The course-color contract: every served lesson (embedded or not) gets its
+    // course's `--course-accent*` variables, so lessons authored against
+    // `var(--course-accent, …)` (teach/SKILL.md, "Course color") always match
+    // the app's assignment. Injected before </head>, after the lesson's own
+    // styles, so the app's values win.
+    `<style>${courseVarsCss(ctx.topic)}</style>` +
     // The bar CSS is only needed when the bar itself is injected.
     (ctx.embed ? "" : `<style>${BAR_CSS}</style>`)
   );
@@ -115,7 +122,7 @@ padding:9px 16px;background:#fff;border-bottom:1px solid #e5e7eb;color:#1a1d21;
 font:13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;box-sizing:border-box}
 .iteacher-bar a,.iteacher-bar button{color:inherit;font:inherit}
 .iteacher-bar__back{text-decoration:none;font-weight:600;color:#6b7280;white-space:nowrap}
-.iteacher-bar__back:hover{color:#0d7af9}
+.iteacher-bar__back:hover{color:var(--course-accent,#0d7af9)}
 .iteacher-bar__meta{display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden}
 .iteacher-bar__topic{font-weight:600;color:#1a1d21;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .iteacher-bar__lesson{color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -127,12 +134,13 @@ white-space:nowrap;font-variant-numeric:tabular-nums}
 padding:4px 10px 4px 9px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;white-space:nowrap}
 .iteacher-bar__dot{width:6px;height:6px;border-radius:50%;background:#f08c00}
 .iteacher-bar__chip[data-done] .iteacher-bar__dot{background:#2f9e44}
-.iteacher-bar__complete{border:1px solid transparent;background:#0d7af9;color:#fff;border-radius:8px;
+.iteacher-bar__complete{border:1px solid transparent;background:var(--course-accent,#0d7af9);
+color:var(--course-accent-contrast,#fff);border-radius:8px;
 padding:7px 14px;cursor:pointer;font-weight:600;white-space:nowrap}
-.iteacher-bar__complete:hover{background:#0a5fc4}
+.iteacher-bar__complete:hover{background:var(--course-accent-hover,#0a5fc4);color:#fff}
 .iteacher-bar__complete[data-completed="true"]{background:#2f9e44;cursor:default}
 .iteacher-bar__complete[disabled]{opacity:1}
-.iteacher-bar__next{text-decoration:none;font-weight:600;color:#0d7af9;white-space:nowrap;
-border:1px solid #e4efff;border-radius:8px;padding:7px 12px}
-.iteacher-bar__next:hover{background:#e4efff}
+.iteacher-bar__next{text-decoration:none;font-weight:600;color:var(--course-accent,#0d7af9);white-space:nowrap;
+border:1px solid var(--course-accent-soft,#e4efff);border-radius:8px;padding:7px 12px}
+.iteacher-bar__next:hover{background:var(--course-accent-soft,#e4efff)}
 `;
