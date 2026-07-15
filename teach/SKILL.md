@@ -7,17 +7,32 @@ argument-hint: "What would you like to learn about?"
 
 The user has asked you to teach them something. This is a stateful request - they intend to learn the topic over multiple sessions.
 
+## This skill vs the iTeacher app
+
+This `teach` skill folder lives **inside the iTeacher repo**, but the two have distinct jobs, and you must stay on your side of the seam:
+
+- **This skill is the authoring agent.** You (Claude Code) create and maintain the workspace files listed below. This is the only place lessons are written — the app never authors anything.
+- **The iTeacher app (`src/`) is the viewer + runtime.** It is a local web server that scans the root of workspaces, renders a dashboard, serves each lesson with an injected top bar + progress bridge, and records the learner's progress. It reads your files and writes back exactly one: `progress.json`.
+
+Practical consequences, and the reasons this skill folder sits in this repo:
+
+- **A workspace is one topic** — an immediate subfolder of the iTeacher root that contains a `MISSION.md`. The current directory _is_ that workspace; every file below lives at its root (or a named subdirectory). No `MISSION.md`, and the app won't see the folder as a topic at all.
+- **Lessons reach the learner _through the app_, not from the filesystem** — see [Opening a lesson](#opening-a-lesson) and [Recording progress](#recording-progress--the-iteacher-runtime). Progress is only tracked when the app serves the page.
+- **`progress.json` is app-managed — never hand-edit or generate it.** The server is the single writer and its writes are monotonic/idempotent. Your job is to author; tracking is the app's.
+
 ## Teaching Workspace
 
 Treat the current directory as a teaching workspace. The state of their learning is captured in this directory in several files:
 
-- `MISSION.md`: A document capturing the _reason_ the user is interested in the topic. This should be used to ground all teaching. Use the format in [MISSION-FORMAT.md](./MISSION-FORMAT.md).
+- `MISSION.md`: A document capturing the _reason_ the user is interested in the topic. This should be used to ground all teaching. Use the format in [MISSION-FORMAT.md](./MISSION-FORMAT.md). The title line **must** read `# Mission: {Topic}` — the app reads that exact line for the dashboard title, and falls back to the folder name if it's missing.
+- `SYLLABUS.md`: The ordered, provisional forecast of lessons in teaching order — the agent-authored plan the app reads to show what's next and what's still to come. You own this file; keep it in step with the lessons you author. See [The Syllabus](#the-syllabus).
 - `./reference/*.html`: A directory of reference materials. These are the compressed learnings from the lessons - cheat sheets, reference algorithms, syntax, yoga poses, glossaries. They are the raw units of learning. They should be beautiful documents which print out well, and are designed for quick reference.
 - `RESOURCES.md`: A list of resources which can be explored to ground your teaching in contextual knowledge, or to acquire knowledge and wisdom. Use the format in [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md).
 - `./learning-records/*.md`: A directory of learning records, which capture what the user has learned. These are loosely equivalent to architectural decision records in software development - they capture non-obvious lessons and key insights that may need to be revised later, or drive future sessions. These should be used to calculate the zone of proximal development. They are titled `0001-<dash-case-name>.md`, where the number increments each time. Use the format in [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md).
 - `./lessons/*.html`: A directory of lessons. A **lesson** is a single, self-contained HTML output that teaches one tightly-scoped thing tied to the mission. This is the primary unit of teaching in this workspace.
 - `./assets/*`: Reusable **components** shared across lessons. See [Assets](#assets).
 - `NOTES.md`: A scratchpad for you to jot down user preferences, or working notes.
+- `progress.json` (app-managed, read-only to you): the learner's raw completion facts, written solely by the iTeacher runtime. Do not create or edit it.
 
 ## Philosophy
 
@@ -52,13 +67,33 @@ A lesson should be **beautiful** — clean, readable typography and layout — s
 
 The lesson should be short, and completable very quickly. Learners' working memory is very small, and we need to stay within it. But each lesson should give the user a single tangible win that they can build on. It should be directly tied to the mission, and should be in the user's zone of proximal development.
 
-If possible, open the lesson file for the user by running a CLI command.
+### Opening a lesson
+
+Open a lesson **through the running iTeacher app, never as a bare file.** The app serves each lesson at `/w/<workspace-slug>/lessons/<file>.html` (reachable from the dashboard at the app's root URL), and only the _served_ page gets the injected top bar and the runtime bridge that records progress. Opening the raw `.html` off the filesystem — `start`, `open`, `xdg-open`, double-click — bypasses the server, so the bridge silently no-ops and nothing is tracked.
+
+So: point the user at the dashboard (or the served lesson URL) rather than running a CLI command that opens the file directly. If the app isn't running, tell the user to start it (the repo's launcher, or `pnpm dev`) instead of falling back to opening the file.
 
 Each lesson should link via HTML anchors to other lessons and reference documents.
 
 Each lesson should recommend a primary source for the user to read or watch. This should be the most high-quality, high-trust resource you found on the topic.
 
 Each lesson should contain a reminder to ask followup questions to the agent. The agent is their teacher, and can assist with anything that's unclear.
+
+### Recording progress — the iTeacher runtime
+
+When the app serves a lesson it injects a runtime bridge and a top bar — you do **not** add any tracking script, meta tag, or write to `progress.json` yourself. Instead, author your interactive widgets to emit the events the bridge already listens for, so exercises and completions get recorded:
+
+- **Exercises / quizzes** — put each exercise inside an element carrying a stable `data-exercise-id`, and when the learner attempts or passes it, dispatch a **bubbling** `iteacher:exercise` CustomEvent. The bridge joins it to the nearest `[data-exercise-id]` ancestor:
+
+  ```js
+  el.dispatchEvent(new CustomEvent("iteacher:exercise", {
+    bubbles: true,
+    detail: { status: "passed", score: 1 }   // status: "attempted" | "passed"; score optional
+  }));
+  ```
+
+- **Lesson completion** — the injected top bar already has a **Mark complete** button that calls `window.iteacher.complete()`. For a lesson that completes itself (e.g. once the final exercise passes), either call `window.iteacher.complete()` or dispatch `iteacher:lesson` with `{ status: "completed" }`.
+- **Progressive enhancement, not a dependency.** Outside the app (a bare file) the bridge is simply absent and these events no-op, so lessons still work standalone. Never gate lesson content on the bridge, and never try to record progress any other way — the server is the sole, idempotent writer.
 
 ## Assets
 
@@ -79,6 +114,22 @@ If the user is unclear about the mission, or the `MISSION.md` is not populated, 
 Failing to understand the mission will mean knowledge acquisition is not grounded in real-world goals. Lessons will feel too abstract. You will have no way of judging what the user should do next.
 
 Missions may change as the user develops more skills and knowledge. This is normal - make sure to update the `MISSION.md` and add a learning record to capture the change. Confirm with the user before changing the mission.
+
+## The Syllabus
+
+`SYLLABUS.md` is your provisional forecast of the course — the ordered list of lessons in teaching order. It is how the iTeacher dashboard shows the learner what's coming next and how far the arc runs, so keep it current as you author lessons.
+
+It is a tolerant, human-readable markdown list — one entry per lesson, in order. Each entry has a **bold title**, an optional one-line gist after a dash, and a status marker. A missing marker means `planned`; use `[authored: <file>]` once the lesson file exists (the filename ties the entry to the lesson on disk). Anything that isn't a list item (headings, prose) is ignored, so you can annotate freely.
+
+```md
+# Syllabus: {Topic}
+
+1. **Variables & types** — the atoms every program is built from. [authored: 0001-variables-and-types.html]
+2. **Control flow** — branching and looping. [planned]
+3. **Functions** — naming and reusing behaviour. [planned]
+```
+
+Keep it honest and provisional: it's a forecast in the zone of proximal development, not a contract. Reorder, add, or drop planned entries as the learner progresses. When you author a lesson, flip its entry to `[authored: …]` with the real filename so the dashboard links it.
 
 ## Zone Of Proximal Development
 
