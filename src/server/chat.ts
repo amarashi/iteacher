@@ -60,6 +60,17 @@ color:var(--accent-contrast);font-size:18px;cursor:pointer}
 .bubble .txt a{color:var(--accent);text-decoration:underline}
 .bubble .txt code{background:var(--surface);border:1px solid var(--border);border-radius:4px;
 padding:0 4px;font-family:var(--font-mono);font-size:.88em}
+/* ── Reduced motion ───────────────────────────────────────────────────────
+   Shared by every chat-bearing surface, so this is also the app-wide global
+   branch: looping/decorative motion settles to its end state after one
+   near-instant cycle instead of running forever or freezing mid-frame.
+   The caret and thinking-dots carry live "the teacher is working" state, so
+   they must stay *visible* — we only stop them looping, never hide them. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .bubble.streaming .txt:after{animation:none;opacity:1}
+  .dots i{animation:none;opacity:.75;transform:none}
+}
 `;
 
 /**

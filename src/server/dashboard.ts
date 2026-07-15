@@ -623,6 +623,9 @@ body.chat-open .chatpanel{transform:none}
 }
 @media(prefers-reduced-motion:reduce){
   .track{scroll-behavior:auto}
+  /* Freeze the empty-state spinner into a still ring — the accent arc still
+     reads as "loading" next to its label, without the perpetual rotation. */
+  .spinner{animation:none}
 }
 ` +
   // Inner conversation styling shared with the study view (message log, bubbles,
