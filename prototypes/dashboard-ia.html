@@ -1,0 +1,238 @@
+<!doctype html>
+<!--
+  iTeacher dashboard — IA / layout reference — wayfinder ticket #4 (RESOLVED).
+  This is the SYNTHESISED winner, not a live variant switcher. It folds:
+    - base architecture  = journey rails (prototype variant C)
+    - resume affordance   = a "Continue where you left off" hero (from variant B)
+    - ordering            = fixed groups: In progress -> Not started -> Completed
+    - long-rail overflow  = windowed (recent-done -> next -> few ahead, no h-scroll)
+  and renders the DashboardModel so "provisional"/"approximate" read honestly:
+  no headline %, greyed ~ on every soft-journey figure, dashed+fading ghost beads
+  for planned-but-not-authored lessons, upcoming fainter than next-up.
+
+  Fixture data only; no framework/build/server. Double-click to open.
+  Add ?empty=1 to see the first-run / empty-root state.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iTeacher dashboard — IA reference</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --surface:#fff; --ink:#1a1d21; --muted:#6b7280; --faint:#9ca3af;
+    --line:#e5e7eb; --accent:#3b5bdb; --accent-soft:#e7ecff;
+    --done:#2f9e44; --done-soft:#e6f4ea; --progress:#f08c00; --ghost:#cbd2da;
+    --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);
+    font-synthesis-weight:none;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 24px 80px}
+  .topbar{display:flex;align-items:baseline;gap:14px;margin-bottom:4px}
+  .topbar h1{font-size:22px;margin:0;letter-spacing:-.01em}
+  .topbar .sub{color:var(--muted);font-size:13px}
+  .roothint{color:var(--faint);font-size:12px;margin:0 0 26px}
+  .roothint code{background:#eceef1;padding:1px 6px;border-radius:5px;font-size:11px}
+
+  /* shared atoms */
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+    padding:3px 9px;border-radius:999px}
+  .chip.completed{background:var(--done-soft);color:var(--done)}
+  .chip.in-progress{background:#fff4e6;color:var(--progress)}
+  .chip.not-started{background:#f1f3f5;color:var(--muted)}
+  .chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .approx{font-variant-numeric:tabular-nums} .approx .tilde{color:var(--faint)}
+  .provisional-tag{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .metric{font-variant-numeric:tabular-nums} .metric b{font-weight:650}
+  .muted{color:var(--muted)} .faint{color:var(--faint)}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:none;
+    border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent-soft)}
+
+  /* continue hero (from variant B) */
+  .hero{background:linear-gradient(180deg,#fff,#fbfcfe);border:1px solid var(--line);
+    border-left:4px solid var(--accent);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:20px 24px;margin-bottom:26px;display:flex;justify-content:space-between;align-items:center;
+    gap:20px;flex-wrap:wrap}
+  .hero .l{display:flex;flex-direction:column;gap:5px;min-width:260px}
+  .hero .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
+  .hero h2{margin:0;font-size:19px}
+  .hero .nx{font-size:14.5px;font-weight:600}
+  .hero .meta{font-size:12.5px;color:var(--muted)}
+
+  /* group headers (fixed ordering) */
+  .grouphd{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);
+    font-weight:700;margin:22px 0 10px;display:flex;align-items:center;gap:10px}
+  .grouphd::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* journey rail (variant C, windowed) */
+  .rail{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px 20px;margin-bottom:14px}
+  .rail.done-topic{background:#fbfcfd;padding:12px 20px}
+  .rail .rhd{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+  .rail.done-topic .rhd{margin-bottom:0}
+  .rail h3{margin:0;font-size:15.5px}
+  .track{display:flex;align-items:flex-start;gap:0}
+  .node{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:88px;position:relative;flex:0 0 auto}
+  .node::after{content:"";position:absolute;top:11px;left:50%;width:100%;height:2px;background:var(--line);z-index:0}
+  .node:last-child::after{display:none}
+  .node.done::after{background:var(--done)}
+  .node .bead{width:24px;height:24px;border-radius:50%;background:var(--surface);border:2px solid var(--line);
+    z-index:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--faint)}
+  .node.done .bead{background:var(--done);border-color:var(--done);color:#fff}
+  .node.next .bead{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+  .node.ghost .bead{border-style:dashed;border-color:var(--ghost);opacity:.75}
+  .node .cap{font-size:11px;text-align:center;color:var(--muted);max-width:84px;line-height:1.3}
+  .node.next .cap{color:var(--ink);font-weight:600}
+  .node.ghost .cap{color:var(--ghost)}
+  /* end-caps that stand in for the hidden window */
+  .cap-node{min-width:auto;justify-content:center;padding-top:2px}
+  .cap-node .capend{font-size:11px;color:var(--faint);white-space:nowrap;padding:5px 10px;
+    border:1px dashed var(--line);border-radius:999px}
+  .cap-node.lead .capend{border-style:solid;border-color:var(--done-soft);color:var(--done)}
+  .rail .foot{margin-top:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+  .rail .foot .spacer{flex:1}
+
+  /* brand-new + empty */
+  .rail.newtopic{border-style:dashed}
+  .rail.newtopic .body{font-size:12.5px;color:var(--muted)}
+  .emptyroot{max-width:520px;margin:8vh auto;text-align:center;background:var(--surface);
+    border:1px dashed var(--line);border-radius:var(--radius);padding:40px 32px}
+  .emptyroot h2{margin:0 0 10px;font-size:18px}
+  .emptyroot p{color:var(--muted);font-size:13.5px;margin:0 0 6px}
+  .emptyroot code{background:#eceef1;padding:2px 7px;border-radius:6px;font-size:12px}
+  #etoggle{position:fixed;right:16px;bottom:16px;background:#111418;color:#fff;border:none;
+    border-radius:999px;padding:8px 14px;font-size:11.5px;cursor:pointer;opacity:.8;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<button id="etoggle">toggle empty-root</button>
+<script>
+// ---- fixture: a realistic multi-topic learner (DashboardModel entries) ----
+// lastOpened drives the Continue hero; plannedTotal is the soft-journey denom.
+const TOPICS = [
+  { title:"Spanish Grammar", state:"in-progress", lastOpened:2,
+    lessonsCompleted:3, homeworksDone:5, lessonCount:8, plannedTotal:12,
+    nextUp:"The Subjunctive Mood",
+    upcoming:["Por vs Para, settled","Irregular Preterite","Reflexive Constructions"] },
+  { title:"Intro to Machine Learning", state:"in-progress", lastOpened:1,
+    lessonsCompleted:7, homeworksDone:11, lessonCount:9, plannedTotal:10,
+    nextUp:"Regularisation: Ridge & Lasso", upcoming:["Intro to Neural Nets"] },
+  { title:"Woodworking Joinery", state:"not-started", lastOpened:0, brandNew:true,
+    lessonsCompleted:0, homeworksDone:0, lessonCount:0, plannedTotal:null,
+    nextUp:null, upcoming:[] },
+  { title:"Music Theory: Harmony", state:"completed", lastOpened:9,
+    lessonsCompleted:6, homeworksDone:9, lessonCount:6, plannedTotal:6,
+    nextUp:null, upcoming:[] },
+];
+const empty = new URLSearchParams(location.search).get('empty')==='1';
+
+// ---- honest soft-journey text: no %, greyed ~ when approximate ----
+function journeyText(t){
+  if(t.brandNew) return `<span class="faint">No lessons yet</span>`;
+  const denom = t.plannedTotal ?? t.lessonCount;
+  const pos = t.state==="completed" ? t.lessonsCompleted : t.lessonsCompleted+1;
+  const approx = t.plannedTotal && t.plannedTotal!==t.lessonCount;
+  return `<span class="approx">Lesson <b>${Math.min(pos,denom)}</b> of `
+    + `${approx?'<span class="tilde">~</span>':''}${denom} planned</span>`;
+}
+function chip(t){const m={completed:"Completed","in-progress":"In progress","not-started":"Not started"};
+  return `<span class="chip ${t.state}"><span class="dot"></span>${m[t.state]}</span>`;}
+
+// ---- windowed rail: [… K done] · recent done · (next) · few ahead · [~M more planned] ----
+function railTrack(t){
+  const done=t.lessonsCompleted, authored=t.lessonCount, denom=t.plannedTotal??authored;
+  const nextIdx=done;              // 0-based index of the next lesson
+  const AHEAD=3;                   // show this many beads past 'next'
+  const winEnd=Math.min(nextIdx+AHEAD, denom-1);
+  const winStart=Math.max(nextIdx-1, 0); // one recent completed for context
+  let nodes='';
+  if(winStart>0) nodes+=`<div class="node cap-node lead"><span class="capend">… ${winStart} done</span></div>`;
+  for(let i=winStart;i<=winEnd;i++){
+    let cls,label,cap;
+    if(i<done){cls="done";label="✓";cap="Lesson "+(i+1);}
+    else if(i===done){cls="next";label="›";cap=t.nextUp||("Lesson "+(i+1));}
+    else if(i<authored){cls="";label=i+1;cap="Lesson "+(i+1);}
+    else {cls="ghost";label="";cap="planned";}
+    nodes+=`<div class="node ${cls}"><div class="bead">${label}</div><div class="cap">${cap}</div></div>`;
+  }
+  const moreAhead=denom-1-winEnd;
+  if(moreAhead>0){
+    const approx = t.plannedTotal && t.plannedTotal!==t.lessonCount;
+    nodes+=`<div class="node cap-node"><span class="capend">${approx?'~':''}${moreAhead} more planned</span></div>`;
+  }
+  return `<div class="track">${nodes}</div>`;
+}
+function railFull(t){
+  return `<div class="rail">
+    <div class="rhd"><h3>${t.title}</h3>${chip(t)}</div>
+    ${railTrack(t)}
+    <div class="foot">
+      <span class="metric"><b>${t.lessonsCompleted}</b>/${t.lessonCount} lessons</span>
+      <span class="metric"><b>${t.homeworksDone}</b> homeworks</span>
+      <span>${journeyText(t)} <span class="provisional-tag">provisional</span></span>
+      <span class="spacer"></span>
+      <a class="btn ghost" href="#">Open next →</a>
+    </div>
+  </div>`;
+}
+function railNew(t){
+  return `<div class="rail newtopic">
+    <div class="rhd"><h3>${t.title}</h3>${chip(t)}</div>
+    <div class="body">Mission set — no lessons authored yet. The journey is drawn once teaching begins.</div>
+  </div>`;
+}
+function railDone(t){
+  return `<div class="rail done-topic">
+    <div class="rhd">
+      <h3 style="font-weight:600">${t.title} <span class="muted" style="font-weight:400;font-size:13px">· ${t.lessonCount} lessons · ${t.homeworksDone} homeworks</span></h3>
+      ${chip(t)}
+    </div>
+  </div>`;
+}
+
+function render(){
+  const app=document.getElementById('app');
+  if(empty){
+    app.innerHTML=`<div class="emptyroot">
+      <h2>No topics yet</h2>
+      <p>iTeacher shows one topic for each <code>teach</code> workspace in your root folder.</p>
+      <p class="faint" style="margin-top:14px">Your root folder is <code>~/iTeacher</code>.</p>
+      <p class="faint">Ask Claude Code to start teaching you something — a new topic appears here automatically.</p>
+    </div>`; return;
+  }
+  const inprog=TOPICS.filter(t=>t.state==="in-progress").sort((a,b)=>a.lastOpened-b.lastOpened);
+  const notstarted=TOPICS.filter(t=>t.state==="not-started");
+  const completed=TOPICS.filter(t=>t.state==="completed");
+  const lead=inprog[0]; // most-recently-active -> Continue hero
+  const hero = lead?`<div class="hero">
+      <div class="l">
+        <span class="eyebrow">Continue where you left off</span>
+        <h2>${lead.title}</h2>
+        <span class="nx">Next: ${lead.nextUp}</span>
+        <span class="meta">${journeyText(lead)} · ${lead.homeworksDone} homeworks · <span class="provisional-tag">provisional plan</span></span>
+      </div>
+      <a class="btn" href="#" style="padding:12px 20px">Open lesson →</a>
+    </div>`:'';
+  const group=(label,items,fn)=> items.length?`<div class="grouphd">${label}</div>${items.map(fn).join('')}`:'';
+  app.innerHTML=`<div class="wrap">
+    <div class="topbar"><h1>My Learning</h1><span class="sub">${TOPICS.length} topics</span></div>
+    <p class="roothint">Root: <code>~/iTeacher</code> · one topic per teach workspace</p>
+    ${hero}
+    ${group("In progress", inprog, t=>t.brandNew?railNew(t):railFull(t))}
+    ${group("Not started", notstarted, t=>t.brandNew?railNew(t):railFull(t))}
+    ${group("Completed", completed, railDone)}
+  </div>`;
+}
+document.getElementById('etoggle').onclick=()=>{
+  const p=new URLSearchParams(location.search);
+  empty?p.delete('empty'):p.set('empty','1');
+  location.search=p.toString();
+};
+render();
+</script>
+</body>
+</html>
