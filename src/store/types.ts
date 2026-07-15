@@ -62,6 +62,13 @@ export interface TopicModel {
   /** Remaining planned syllabus titles after next-up, in order. */
   futureTitles: string[];
   journey: JourneyPosition;
+  /**
+   * ISO-8601 timestamp of this topic's most recent recorded activity (lesson
+   * opened/completed or exercise updated), or null if nothing has been recorded.
+   * Drives the dashboard's *Continue where you left off* hero — the in-progress
+   * topic with the latest activity leads. Derived from `progress.json`; not stored.
+   */
+  lastActivityAt: string | null;
   /** Authored lessons on disk, in filename order (the journey-rail beads). */
   lessons: LessonBead[];
   /** Planned syllabus titles not yet linked to a lesson (the fading ghost beads). */

@@ -95,6 +95,7 @@ function deriveTopic(rootDir: string, slug: string): TopicModel {
     nextUp,
     futureTitles,
     journey: { completed: lessonsCompleted, plannedTotal, approximate: true },
+    lastActivityAt: lastActivity(progress),
     lessons,
     plannedGhosts: plannedTitles,
     state: topicState(lessons, plannedEntries.length),
@@ -154,6 +155,25 @@ function deriveTitleFromFilename(file: string): string {
   const words = base.split(/[-_.\s]+/).filter(Boolean);
   if (words.length === 0) return file;
   return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+/** The latest ISO timestamp recorded anywhere in the store, or null if none. */
+function lastActivity(progress: ProgressFile): string | null {
+  let latest: string | null = null;
+  const consider = (ts: string | undefined): void => {
+    if (ts && (latest === null || ts > latest)) latest = ts;
+  };
+  for (const fact of Object.values(progress.lessons)) {
+    consider(fact.openedAt);
+    consider(fact.completedAt);
+  }
+  for (const byId of Object.values(progress.exercises)) {
+    for (const ex of Object.values(byId)) {
+      consider(ex.firstSeenAt);
+      consider(ex.updatedAt);
+    }
+  }
+  return latest;
 }
 
 function countPassedExercises(progress: ProgressFile): number {

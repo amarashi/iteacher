@@ -129,6 +129,34 @@ describe("deriveDashboard", () => {
     expect(t.journey.plannedTotal).toBe(4); // four syllabus entries
   });
 
+  it("reports no last-activity for a topic with no recorded progress", () => {
+    const r = root({ rust: { mission: mission("Rust"), lessons: { "01-a.html": "<p/>" } } });
+    expect(deriveDashboard(r).topics[0]!.lastActivityAt).toBeNull();
+  });
+
+  it("derives lastActivityAt as the most recent timestamp across lesson and exercise facts", () => {
+    const progress = JSON.stringify({
+      version: 1,
+      lessons: {
+        "01-ownership.html": {
+          state: "completed",
+          openedAt: "2026-01-01T10:00:00.000Z",
+          completedAt: "2026-01-01T10:30:00.000Z",
+        },
+      },
+      exercises: {
+        "01-ownership.html": {
+          "quiz-1": { status: "passed", firstSeenAt: "2026-01-01T10:15:00.000Z", updatedAt: "2026-01-02T09:00:00.000Z" },
+        },
+      },
+    });
+    const r = root({
+      rust: { mission: mission("Rust"), lessons: { "01-ownership.html": "<p/>" }, progress },
+    });
+    // The exercise's updatedAt (Jan 2) is later than any lesson timestamp (Jan 1).
+    expect(deriveDashboard(r).topics[0]!.lastActivityAt).toBe("2026-01-02T09:00:00.000Z");
+  });
+
   it("titles authored lesson beads from the syllabus, others from the filename", () => {
     const r = root({
       rust: {

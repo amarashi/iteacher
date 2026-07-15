@@ -23,7 +23,7 @@ import { deriveDashboard, recordCompletion } from "../store/index.js";
 import type { CompletionEvent, DashboardModel, TopicModel } from "../store/types.js";
 import { BRIDGE_SOURCE } from "./bridge.js";
 import { injectChrome } from "./render.js";
-import { renderDashboardPage } from "./dashboard.js";
+import { renderDashboard } from "./dashboard.js";
 import { journeyLabel } from "./html.js";
 
 export function createApp(rootDir: string): Express {
@@ -40,7 +40,7 @@ export function createApp(rootDir: string): Express {
   });
 
   app.get("/", (_req, res) => {
-    res.type("html").send(renderDashboardPage(deriveDashboard(root)));
+    res.type("html").send(renderDashboard(deriveDashboard(root)));
   });
 
   app.post("/api/progress", (req, res) => {
