@@ -103,6 +103,20 @@ Reuse is the default, not the exception. Before authoring a lesson, read `./asse
 
 A shared stylesheet is the first component every workspace earns: every lesson links it, so the lessons look like one consistent course rather than a pile of one-offs. As the workspace grows, so should the component library.
 
+### Illustrations
+
+There is a ready-made library of warm, cosy illustrations you can pull into lessons — handcrafted 3D-clay / felt miniatures in a matte pastel palette, plus two sheets of small object- and UI-icons. They live outside this repo at:
+
+```
+C:\dev\web\therapyhouse_onboarding_website\public\illustrations\
+```
+
+Read the `catalog.md` in that folder first: it lists every file with its subject, dominant colour, and style, so you can match an illustration to a lesson's topic (e.g. `book-stack.webp` or `note-taking.webp` for a study lesson, `empty-box.webp` / `search-empty.webp` for empty states, `map-pin.webp` / `resources-signpost.webp` for wayfinding, `heart-mug.webp` / `sleeping-cat.webp` for a cosy hero moment). The `icons/` and `functional-ui-icons/` sheets described in the catalog give you small inline glyphs (search, chevron, check, settings, …).
+
+**Suggest an illustration when it earns its place** — a friendly hero image at the top of a lesson, a spot illustration to anchor a section, an empty-state graphic — but don't decorate for its own sake; the Fragapane-inspired clarity comes first.
+
+**Copy, don't link out.** Lessons reach the learner _through the running app_ (see [Opening a lesson](#opening-a-lesson)), so an absolute filesystem path won't resolve in the browser. When you use an illustration, copy the chosen file into the workspace — e.g. `./assets/illustrations/` — and reference it with a workspace-relative path so the served page can load it. Copy only the few you actually use, and keep the filename so it stays traceable to the catalog.
+
 ## The Mission
 
 Every lesson should be tied into the mission - the reason that the user is interested in learning about the topic.
