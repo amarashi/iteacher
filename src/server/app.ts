@@ -23,6 +23,7 @@ import { deriveDashboard, recordCompletion } from "../store/index.js";
 import type { CompletionEvent, DashboardModel, TopicModel } from "../store/types.js";
 import { readConfig, writeConfig } from "../store/config.js";
 import { BRIDGE_SOURCE } from "./bridge.js";
+import { createEventStream } from "./events.js";
 import { injectChrome } from "./render.js";
 import { renderDashboard } from "./dashboard.js";
 import { renderWelcome } from "./welcome.js";
@@ -61,9 +62,14 @@ export function createApp(config: AppOptions | string): Express {
   const app = express();
   app.use(express.json({ limit: "64kb" }));
 
+  // Live dashboard updates (#12): watch the root, notify open dashboards on change.
+  const streamEvents = createEventStream(() => root);
+
   app.get("/_iteacher/bridge.js", (_req, res) => {
     res.type("application/javascript").send(BRIDGE_SOURCE);
   });
+
+  app.get("/api/events", streamEvents);
 
   app.get("/", (_req, res) => {
     if (!root) {

@@ -217,7 +217,9 @@ describe("renderDashboard — journey rails (#4)", () => {
 
   it("escapes topic titles", () => {
     const html = renderDashboard(model([topic({ slug: "x", title: "A <script> & B", state: "in-progress", lessons: [bead("01.html", "L", "in-progress")] })]));
-    expect(html).not.toContain("<script>");
+    // The malicious title must not survive unescaped (the page's own live-update
+    // <script> block is legitimate, so we assert on the injected content itself).
+    expect(html).not.toContain("A <script>");
     expect(html).toContain("A &lt;script&gt; &amp; B");
   });
 });

@@ -213,9 +213,39 @@ function page(model: DashboardModel, body: string): string {
 ${header}
 ${body}
 </div>
+<script>${LIVE_SCRIPT}</script>
 </body>
 </html>`;
 }
+
+/**
+ * Live updates (#12): subscribe to the server's SSE stream and, on a change
+ * notification, re-fetch this same page and swap the freshly rendered rails in.
+ *
+ * The swap is deliberately thin — it re-fetches this same server-rendered
+ * dashboard (itself derived from the fresh model on every request) and replaces
+ * `.wrap`, so the rail-rendering logic lives in exactly one place (this module)
+ * instead of being re-implemented in the browser. `EventSource` handles
+ * reconnect backoff on its own.
+ */
+const LIVE_SCRIPT = `(function(){
+  if(!window.EventSource)return;
+  var pending=false;
+  function refresh(){
+    if(pending)return;pending=true;
+    fetch(location.pathname)
+      .then(function(r){return r.text();})
+      .then(function(html){
+        var doc=new DOMParser().parseFromString(html,'text/html');
+        var fresh=doc.querySelector('.wrap'),cur=document.querySelector('.wrap');
+        if(fresh&&cur)cur.innerHTML=fresh.innerHTML;
+      })
+      .catch(function(){})
+      .then(function(){pending=false;});
+  }
+  var es=new EventSource('/api/events');
+  es.addEventListener('change',refresh);
+})();`;
 
 const PAGE_CSS = `
 :root{--bg:#f6f7f9;--surface:#fff;--ink:#1a1d21;--muted:#6b7280;--faint:#9ca3af;

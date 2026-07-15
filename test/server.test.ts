@@ -80,6 +80,12 @@ describe("render surface (#5)", () => {
     expect(html).toContain("/w/rust/lessons/01-ownership.html");
   });
 
+  it("wires the live-update SSE subscription into the dashboard page (#12)", async () => {
+    const html = await (await fetch(`${base}/`)).text();
+    expect(html).toContain("new EventSource('/api/events')");
+    expect(html).toContain("'change'");
+  });
+
   it("injects a forward-nav link to the next lesson in teaching order (#5)", async () => {
     const { root, cleanup } = makeRoot({
       rust: {
