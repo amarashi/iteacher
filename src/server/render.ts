@@ -66,6 +66,9 @@ function headMarkup(ctx: ChromeContext): string {
 function barMarkup(ctx: ChromeContext): string {
   const buttonLabel = ctx.completed ? "✓ Completed" : "Mark complete";
   const buttonAttrs = ctx.completed ? ' data-completed="true" disabled' : "";
+  const chip = ctx.completed
+    ? `<span class="iteacher-bar__chip" data-done="true"><span class="iteacher-bar__dot"></span>Completed</span>`
+    : `<span class="iteacher-bar__chip"><span class="iteacher-bar__dot"></span>In progress</span>`;
   const next = ctx.nextHref
     ? `<a class="iteacher-bar__next" href="${attr(ctx.nextHref)}">Next →</a>`
     : "";
@@ -78,35 +81,46 @@ function barMarkup(ctx: ChromeContext): string {
     `<span class="iteacher-bar__lesson">${esc(ctx.lessonTitle)}</span>` +
     `<span class="iteacher-bar__progress">${esc(ctx.progressText)}</span>` +
     `</div>` +
+    chip +
     `<button class="iteacher-bar__complete" type="button"${buttonAttrs} ` +
     `onclick="window.iteacher&&window.iteacher.complete&&window.iteacher.complete();` +
     `this.textContent='✓ Completed';this.setAttribute('data-completed','true');this.disabled=true;">` +
     `${buttonLabel}</button>` +
     next +
-    `</div>` +
-    `<div class="iteacher-bar__spacer"></div>`
+    `</div>`
   );
 }
 
+/**
+ * A light, in-flow sticky bar (design-system product theme), inlined with the few
+ * token values it needs — no font @import, so it stays self-contained over the
+ * learner's own same-origin lesson HTML. Sticky (not fixed) keeps it in normal
+ * flow, so it never overlaps the lesson body and no spacer is required.
+ */
 const BAR_CSS = `
-.iteacher-bar{position:fixed;top:0;left:0;right:0;height:44px;display:flex;align-items:center;gap:12px;
-padding:0 16px;background:#12141a;color:#e7e9ee;font:14px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;
-box-shadow:0 1px 0 rgba(255,255,255,.06);z-index:2147483647;box-sizing:border-box}
-.iteacher-bar a,.iteacher-bar button{color:inherit}
-.iteacher-bar__back{text-decoration:none;font-weight:600;white-space:nowrap}
-.iteacher-bar__back:hover{text-decoration:underline}
+.iteacher-bar{position:sticky;top:0;z-index:2147483647;display:flex;align-items:center;gap:12px;
+padding:9px 16px;background:#fff;border-bottom:1px solid #e5e7eb;color:#1a1d21;
+font:13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;box-sizing:border-box}
+.iteacher-bar a,.iteacher-bar button{color:inherit;font:inherit}
+.iteacher-bar__back{text-decoration:none;font-weight:600;color:#6b7280;white-space:nowrap}
+.iteacher-bar__back:hover{color:#0d7af9}
 .iteacher-bar__meta{display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden}
-.iteacher-bar__topic{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.iteacher-bar__lesson{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.iteacher-bar__sep{opacity:.4}
-.iteacher-bar__progress{margin-left:auto;opacity:.6;white-space:nowrap;font-variant-numeric:tabular-nums}
-.iteacher-bar__complete{border:1px solid rgba(255,255,255,.18);background:#242833;border-radius:6px;
-padding:6px 12px;cursor:pointer;font:inherit;font-weight:600;white-space:nowrap}
-.iteacher-bar__complete:hover{background:#2c313e}
-.iteacher-bar__complete[data-completed="true"]{background:#1f3a29;border-color:#2f6b46;cursor:default}
+.iteacher-bar__topic{font-weight:600;color:#1a1d21;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iteacher-bar__lesson{color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iteacher-bar__sep{color:#cbd2da}
+.iteacher-bar__progress{margin-left:auto;color:#9ca3af;
+font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;
+white-space:nowrap;font-variant-numeric:tabular-nums}
+.iteacher-bar__chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;color:#6b7280;
+padding:4px 10px 4px 9px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;white-space:nowrap}
+.iteacher-bar__dot{width:6px;height:6px;border-radius:50%;background:#f08c00}
+.iteacher-bar__chip[data-done] .iteacher-bar__dot{background:#2f9e44}
+.iteacher-bar__complete{border:1px solid transparent;background:#0d7af9;color:#fff;border-radius:8px;
+padding:7px 14px;cursor:pointer;font-weight:600;white-space:nowrap}
+.iteacher-bar__complete:hover{background:#0a5fc4}
+.iteacher-bar__complete[data-completed="true"]{background:#2f9e44;cursor:default}
 .iteacher-bar__complete[disabled]{opacity:1}
-.iteacher-bar__next{text-decoration:none;font-weight:600;white-space:nowrap;
-border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:6px 12px}
-.iteacher-bar__next:hover{background:#242833}
-.iteacher-bar__spacer{height:44px}
+.iteacher-bar__next{text-decoration:none;font-weight:600;color:#0d7af9;white-space:nowrap;
+border:1px solid #e4efff;border-radius:8px;padding:7px 12px}
+.iteacher-bar__next:hover{background:#e4efff}
 `;

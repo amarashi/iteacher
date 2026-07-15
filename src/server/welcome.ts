@@ -12,6 +12,7 @@
  */
 
 import { esc, attr } from "./html.js";
+import { TOKENS_CSS } from "./tokens.js";
 
 export interface WelcomeModel {
   /** The resolved absolute path proposed as the root. */
@@ -103,37 +104,37 @@ export function renderWelcome(model: WelcomeModel): string {
 </html>`;
 }
 
-const WELCOME_CSS = `
-:root{--bg:#f6f7f9;--surface:#fff;--ink:#1a1d21;--muted:#6b7280;--faint:#9ca3af;
---line:#e5e7eb;--accent:#3b5bdb;--done:#2f9e44;--done-soft:#e6f4ea;
---radius:14px;--shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1)}
+const WELCOME_CSS =
+  TOKENS_CSS +
+  `
 *{box-sizing:border-box}html,body{margin:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
-.card{max-width:560px;margin:7vh auto;background:var(--surface);border:1px solid var(--line);
-border-radius:var(--radius);box-shadow:var(--shadow);padding:36px 36px 32px}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--text-strong);line-height:1.45;-webkit-font-smoothing:antialiased}
+.card{max-width:560px;margin:7vh auto;background:var(--surface);border:1px solid var(--border);
+border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:36px 36px 32px}
 .brand{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);
 font-weight:700;margin:0 0 18px}
 .card h2{margin:0 0 8px;font-size:20px;letter-spacing:-.01em}
-.card>p{color:var(--muted);font-size:13.5px;margin:0 0 6px}
+.card>p{color:var(--text-muted);font-size:13.5px;margin:0 0 6px}
 .pathrow{display:flex;align-items:stretch;gap:8px;margin:16px 0 4px}
-.pathfield{flex:1;display:flex;align-items:center;background:#f2f4f7;border:1px solid var(--line);
-border-radius:10px;padding:11px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-font-size:12.5px;color:var(--ink);overflow:auto;white-space:nowrap}
-.pathinput{flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 14px;
-font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:var(--ink)}
-.copy{flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:0 14px;
-font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
-.copy:active{background:#eceef1}
-.detected{font-size:12px;color:var(--faint);margin:0 0 22px}
-.detected b{color:var(--muted);font-weight:600}
-.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:none;
-border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;text-decoration:none}
+.pathfield{flex:1;display:flex;align-items:center;background:var(--surface-sunken);border:1px solid var(--border);
+border-radius:var(--radius-md);padding:11px 14px;font-family:var(--font-mono);
+font-size:12.5px;color:var(--text-strong);overflow:auto;white-space:nowrap}
+.pathinput{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:11px 14px;
+font-family:var(--font-mono);font-size:12.5px;color:var(--text-strong)}
+.copy{flex:0 0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:0 14px;
+font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer}
+.copy:active{background:var(--surface-sunken)}
+.detected{font-size:12px;color:var(--text-faint);margin:0 0 22px}
+.detected b{color:var(--text-muted);font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--accent-contrast);border:1px solid transparent;
+border-radius:var(--radius-md);padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;text-decoration:none;
+transition:background var(--dur-fast) var(--ease-out)}
+.btn:hover{background:var(--accent-hover)}
 .btn.block{width:100%;justify-content:center;padding:12px}
 .pick{text-align:center;margin-top:12px}
 .linkbtn{background:none;border:none;color:var(--accent);font-size:12.5px;font-weight:600;
 cursor:pointer;padding:6px 2px;text-decoration:none}
-.chooser{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
-.chooser label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:4px}
+.chooser{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+.chooser label{display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:4px}
 .err{color:#c92a2a;font-size:12.5px;margin:8px 0 0}
 `;
