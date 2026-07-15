@@ -23,7 +23,8 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** A streamed event from a teaching turn, forwarded to the browser over SSE. */
 export type TeachEvent =
@@ -56,6 +57,26 @@ const ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Skill"];
 // The in-lesson tutor only *answers* — it reads the workspace to ground its help
 // but never authors, so it can't clobber a lesson the learner is in the middle of.
 const TUTOR_TOOLS = ["Read", "Glob", "Grep", "Skill"];
+
+// The teach method lives in this repo at <root>/teach/SKILL.md. We point the agent
+// at it by ABSOLUTE PATH and have it Read the file directly, rather than invoking a
+// "teach" skill by name: skill-name resolution is fragile — a stale duplicate skill
+// of the same name (e.g. a leftover backup) can shadow the real one and quietly feed
+// the agent the wrong instructions. Both src/server (dev, tsx) and dist/server (build)
+// sit two levels under the repo root, so ../../teach resolves the same in either layout.
+const TEACH_GUIDE = resolve(dirname(fileURLToPath(import.meta.url)), "../../teach/SKILL.md");
+
+/**
+ * An instruction telling the agent to read the teach method straight off disk.
+ * Falls back to the old skill-by-name phrasing only if the file can't be found
+ * (e.g. the app is installed detached from this repo), so the app still works.
+ */
+function teachGuideDirective(): string {
+  if (existsSync(TEACH_GUIDE)) {
+    return `Read the iTeacher teaching method at ${TEACH_GUIDE} and follow it exactly. That file links sibling docs in the same folder (styling, formats) with relative links — read those from that same directory as you need them. Do not announce anything about tools, skills, or files — just teach.`;
+  }
+  return `If a "teach" skill guide is available to you, read its files and follow them; don't announce anything about tools or skills — just teach.`;
+}
 
 const sessions = new Map<string, Session>();
 // One live tutor session per topic slug, so re-opening a lesson (or navigating
@@ -252,7 +273,7 @@ function handleLine(session: Session, line: string): void {
 function startPrompt(topic: string): string {
   return `I want to learn: ${topic}
 
-You are my teacher, following the iTeacher "teach" method. Treat THIS directory as the teaching workspace. (If a "teach" skill guide is available to you, read its files and follow them; don't announce anything about tools or skills — just teach.)
+You are my teacher, following the iTeacher "teach" method. Treat THIS directory as the teaching workspace. ${teachGuideDirective()}
 
 This is a live, in-app teaching session, so behave conversationally:
 - First, greet me warmly in one line and ask me AT MOST one or two short questions to pin down my mission (why I want this / my current level). Then STOP and wait for my reply — do not author anything yet.
@@ -274,6 +295,7 @@ function tutorPrompt(lessonTitle?: string): string {
   const onLesson = lessonTitle ? ` I'm currently on the lesson "${lessonTitle}".` : "";
   return `You are my teacher for the topic in THIS directory. I'm studying it right now inside the iTeacher app, with your chat docked beside the lesson.${onLesson}
 
+- ${teachGuideDirective()}
 - Greet me warmly in ONE short line and invite me to ask about anything I'm stuck on. Then STOP and wait for my question — do not lecture yet.
 - When I ask something, you may read this workspace to answer in context: the lesson files in ./lessons/, plus MISSION.md and SYLLABUS.md (use Read/Glob/Grep). Ground your answer in what I'm actually learning.
 - Answer like a patient tutor: concise and warm, one idea at a time, with a concrete example when it helps. Ask me only one question at a time.
