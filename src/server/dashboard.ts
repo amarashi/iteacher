@@ -218,33 +218,58 @@ function emptyState(root: string): string {
   const promptShown = esc(prompt).replace("&lt;your topic&gt;", `<span class="fill">&lt;your topic&gt;</span>`);
 
   return `<div class="guided">
-    <div class="card dashed">
-      <p class="brand">No topics yet</p>
-      <h2>Ask Claude Code to teach you something</h2>
-      <p>iTeacher shows a topic for each subfolder in your folder. Claude Code
-         writes one per topic — here's the whole hand-off:</p>
-      <ol class="steps">
-        <li>
-          <div class="lbl">Open a terminal in your iTeacher folder:</div>
-          <div class="pathrow">
-            <div class="pathfield">${esc(root)}</div>
-            <button class="copy" type="button" data-copy="${attr(root)}">Copy path</button>
-          </div>
-        </li>
-        <li>
-          <div class="lbl">Run <code>claude</code> to start Claude Code there.</div>
-        </li>
-        <li>
-          <div class="lbl">Tell it what you want to learn — for example:</div>
-          <div class="promptbox">
-            <div class="pf">${promptShown}</div>
-            <button class="copy" type="button" data-copy="${attr(prompt)}">Copy</button>
-          </div>
-        </li>
-      </ol>
-      <div class="waiting"><span class="spinner"></span> Watching this folder — your first topic appears here automatically.</div>
+    <div class="card">
+      <p class="brand">Welcome</p>
+      <h2>What do you want to learn?</h2>
+      <p>Your teacher plans the topic, asks a couple of quick questions, and writes your
+         first lessons — right here, no terminal needed.</p>
+      <button class="btn block" type="button" onclick="iteacherOpenChat()">✦ Teach me something</button>
+      <details class="fallback">
+        <summary>Prefer to drive Claude Code from a terminal?</summary>
+        <ol class="steps">
+          <li>
+            <div class="lbl">Open a terminal in your iTeacher folder:</div>
+            <div class="pathrow">
+              <div class="pathfield">${esc(root)}</div>
+              <button class="copy" type="button" data-copy="${attr(root)}">Copy path</button>
+            </div>
+          </li>
+          <li><div class="lbl">Run <code>claude</code> to start Claude Code there.</div></li>
+          <li>
+            <div class="lbl">Tell it what you want to learn — for example:</div>
+            <div class="promptbox">
+              <div class="pf">${promptShown}</div>
+              <button class="copy" type="button" data-copy="${attr(prompt)}">Copy</button>
+            </div>
+          </li>
+        </ol>
+      </details>
+      <div class="waiting"><span class="spinner"></span> Your topics appear here automatically.</div>
     </div>
   </div>`;
+}
+
+/**
+ * The docked teacher chat (phase-2 demo). Lives OUTSIDE `.wrap` so the live-update
+ * swap (#12) that repaints the dashboard never wipes an in-flight conversation.
+ * All behaviour is in LIVE_SCRIPT; this is just the shell.
+ */
+function chatPanel(): string {
+  return `<div class="scrim" onclick="iteacherCloseChat()"></div>
+<aside class="chatpanel" id="chatpanel" aria-hidden="true">
+  <div class="chathd">
+    <span class="chateyebrow">✦ Your teacher</span>
+    <button class="chatx" type="button" onclick="iteacherCloseChat()" aria-label="Close">×</button>
+  </div>
+  <div class="chatlog" id="chatlog">
+    <div class="msg bot"><div class="bubble">Hi! I'm your teacher. <b>What would you like to learn?</b>
+<span class="hint">e.g. "the basics of chess" or "how mortgages work"</span></div></div>
+  </div>
+  <form class="chatform" onsubmit="return iteacherSend(event)">
+    <textarea id="chatinput" rows="1" placeholder="Type what you want to learn…" autocomplete="off"></textarea>
+    <button class="send" type="submit" aria-label="Send">→</button>
+  </form>
+</aside>`;
 }
 
 // --- page shell ------------------------------------------------------------
@@ -254,7 +279,8 @@ function page(model: DashboardModel, body: string): string {
   const header =
     model.topics.length === 0
       ? ""
-      : `<div class="topbar"><h1>My Learning</h1><span class="sub">${sub}</span></div>
+      : `<div class="topbar"><h1>My Learning</h1><span class="sub">${sub}</span>
+    <button class="teachbtn" type="button" onclick="iteacherOpenChat()">✦ Teach me something</button></div>
     <p class="roothint">Root: <code>${esc(model.root)}</code> · one topic per teach workspace</p>`;
   return `<!doctype html>
 <html lang="en">
@@ -269,6 +295,7 @@ function page(model: DashboardModel, body: string): string {
 ${header}
 ${body}
 </div>
+${chatPanel()}
 <script>${LIVE_SCRIPT}</script>
 </body>
 </html>`;
@@ -333,6 +360,74 @@ const LIVE_SCRIPT = `(function(){
   }
   var es=new EventSource('/api/events');
   es.addEventListener('change',refresh);
+
+  // --- in-app teacher chat (phase-2 demo) ---
+  var sid=null, es2=null, curBubble=null, curTxt=null, curText='', sending=false;
+  function log(){ return document.getElementById('chatlog'); }
+  function scroll(){ var l=log(); if(l) l.scrollTop=l.scrollHeight; }
+  window.iteacherOpenChat=function(){
+    document.body.classList.add('chat-open');
+    var p=document.getElementById('chatpanel'); if(p) p.setAttribute('aria-hidden','false');
+    var i=document.getElementById('chatinput'); if(i) i.focus();
+  };
+  window.iteacherCloseChat=function(){
+    document.body.classList.remove('chat-open');
+    var p=document.getElementById('chatpanel'); if(p) p.setAttribute('aria-hidden','true');
+  };
+  function addUser(text){
+    var m=document.createElement('div'); m.className='msg me';
+    var b=document.createElement('div'); b.className='bubble'; b.textContent=text;
+    m.appendChild(b); log().appendChild(m); scroll();
+  }
+  function newBot(){
+    var m=document.createElement('div'); m.className='msg bot';
+    curBubble=document.createElement('div'); curBubble.className='bubble streaming';
+    curTxt=document.createElement('span'); curTxt.className='txt';
+    curBubble.appendChild(curTxt); m.appendChild(curBubble);
+    log().appendChild(m); curText=''; scroll();
+  }
+  function authoringChip(){
+    if(!curBubble||curBubble.querySelector('.authoring'))return;
+    var c=document.createElement('div'); c.className='authoring';
+    c.innerHTML='<span class="dots"><i></i><i></i><i></i></span> writing your lessons\\u2026';
+    curBubble.appendChild(c); scroll();
+  }
+  function setSending(v){
+    sending=v;
+    var i=document.getElementById('chatinput'), s=document.querySelector('.send');
+    if(i) i.disabled=v; if(s) s.disabled=v; if(!v&&i) i.focus();
+  }
+  function onTeach(d){
+    if(d.type==='text'){ if(!curBubble)newBot(); curText+=d.text; curTxt.textContent=curText; scroll(); }
+    else if(d.type==='tool'){ if(d.name==='Write'||d.name==='Edit'){ if(!curBubble)newBot(); authoringChip(); } }
+    else if(d.type==='turn'){ if(curBubble){ curBubble.classList.remove('streaming'); var a=curBubble.querySelector('.authoring'); if(a){ a.classList.add('done'); a.innerHTML='\\u2713 lessons ready'; } } curBubble=null; setSending(false); }
+    else if(d.type==='error'){ if(!curBubble)newBot(); curTxt.textContent=curText+' \\u26a0 '+d.message; curBubble.classList.remove('streaming'); curBubble=null; setSending(false); }
+  }
+  function openStream(){
+    if(es2)es2.close();
+    es2=new EventSource('/api/teach/'+sid+'/events');
+    es2.onmessage=function(ev){ var d; try{d=JSON.parse(ev.data);}catch(e){return;} if(d.type==='ready')return; onTeach(d); };
+  }
+  window.iteacherSend=function(e){
+    if(e&&e.preventDefault)e.preventDefault();
+    var i=document.getElementById('chatinput'); var text=(i&&i.value||'').trim();
+    if(!text||sending)return false;
+    addUser(text); if(i)i.value=''; setSending(true);
+    if(!sid){
+      fetch('/api/teach/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({topic:text})})
+        .then(function(r){return r.json();})
+        .then(function(j){ sid=j.sessionId; openStream(); })
+        .catch(function(){ setSending(false); });
+    } else {
+      fetch('/api/teach/'+sid+'/reply',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:text})})
+        .catch(function(){ setSending(false); });
+    }
+    return false;
+  };
+  document.addEventListener('keydown',function(e){
+    if(e.target&&e.target.id==='chatinput'&&e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); window.iteacherSend(e); }
+    else if(e.key==='Escape'){ window.iteacherCloseChat(); }
+  });
 })();`;
 
 const PAGE_CSS =
@@ -452,4 +547,52 @@ padding:16px 20px;margin-bottom:22px;animation:pop .5s var(--ease-pop) both}
 .celebrate .eb{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);font-weight:500;margin-bottom:3px}
 .celebrate .t{font-size:14.5px;font-weight:650}
 .celebrate .s{font-size:12.5px;color:var(--text-muted)}
+/* --- in-app teacher chat (phase-2 demo) --- */
+.topbar .teachbtn{margin-left:auto;background:var(--accent);color:var(--accent-contrast);border:none;
+border-radius:var(--radius-md);padding:9px 15px;font-family:var(--font-ui);font-size:13px;font-weight:600;
+cursor:pointer;box-shadow:var(--shadow-sm);transition:background var(--dur-fast) var(--ease-out)}
+.topbar .teachbtn:hover{background:var(--accent-hover)}
+.btn.block{width:100%;justify-content:center;padding:13px;font-size:14.5px;margin:20px 0 6px}
+.fallback{margin-top:4px}
+.fallback>summary{cursor:pointer;color:var(--text-muted);font-size:12.5px;padding:8px 0;list-style:none}
+.fallback>summary::-webkit-details-marker{display:none}
+.fallback>summary:before{content:"› ";color:var(--text-faint)}
+.fallback[open]>summary:before{content:"⌄ "}
+.scrim{position:fixed;inset:0;background:rgba(16,24,40,.28);opacity:0;pointer-events:none;
+transition:opacity var(--dur-base) var(--ease-out);z-index:40}
+body.chat-open .scrim{opacity:1;pointer-events:auto}
+/* On desktop the panel is docked, not modal — the scrim must not block the live dashboard. */
+@media(min-width:900px){body.chat-open .scrim{background:transparent;pointer-events:none}}
+.chatpanel{position:fixed;top:0;left:0;width:min(420px,92vw);height:100vh;background:var(--surface);
+border-right:1px solid var(--border);box-shadow:var(--shadow-md);display:flex;flex-direction:column;
+transform:translateX(-100%);transition:transform var(--dur-base) var(--ease-out);z-index:50}
+body.chat-open .chatpanel{transform:none}
+.wrap{transition:margin-left var(--dur-base) var(--ease-out)}
+@media(min-width:900px){body.chat-open .wrap{margin-left:min(420px,92vw)}}
+.chathd{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--border)}
+.chateyebrow{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:600}
+.chatx{background:none;border:none;font-size:22px;line-height:1;color:var(--text-faint);cursor:pointer;padding:0 4px}
+.chatlog{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.msg{display:flex}.msg.me{justify-content:flex-end}
+.bubble{max-width:82%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.5;
+white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.bot .bubble{background:var(--surface-sunken);color:var(--text-strong);border-bottom-left-radius:4px}
+.msg.me .bubble{background:var(--accent);color:var(--accent-contrast);border-bottom-right-radius:4px}
+.bubble .hint{display:block;margin-top:4px;color:var(--text-faint);font-size:12px}
+.bubble.streaming .txt:after{content:"▋";margin-left:1px;color:var(--accent);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.authoring{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);
+font-size:12px;color:var(--accent);font-weight:600}
+.authoring.done{color:var(--status-done)}
+.dots{display:inline-flex;gap:3px}
+.dots i{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
+.chatform{display:flex;gap:8px;padding:14px;border-top:1px solid var(--border);align-items:flex-end}
+.chatform textarea{flex:1;resize:none;max-height:120px;border:1px solid var(--border);border-radius:12px;
+padding:10px 12px;font-family:var(--font-ui);font-size:13.5px;line-height:1.4;color:var(--text-strong);background:var(--surface)}
+.chatform textarea:focus{outline:none;border-color:var(--accent);box-shadow:var(--shadow-glow)}
+.send{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:none;background:var(--accent);
+color:var(--accent-contrast);font-size:18px;cursor:pointer}
+.send:disabled{opacity:.45;cursor:default}
 `;
