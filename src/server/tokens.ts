@@ -1,5 +1,5 @@
 /**
- * Design-system tokens (the "iTeacher Design System" project, light/product theme).
+ * Design-system tokens (the "iTeacher Design System" project, dark/product theme).
  *
  * One shared source for the app's own full-page surfaces — the welcome/hand-off
  * card and the journey-rail dashboard — so the accent language, type scale, radii
@@ -20,27 +20,42 @@ export const TOKENS_CSS = `
 --font-display:'Oswald','Arial Narrow',system-ui,sans-serif;
 --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-/* brand accents — native #3b5bdb realigned to brand blue */
---blue-500:#0d7af9;--blue-600:#0a5fc4;--blue-soft:#e4efff;--cyan-500:#00ffff;
-/* neutrals */
---ink-900:#1a1d21;--ink-700:#3b4149;--gray-500:#6b7280;--gray-400:#9ca3af;
---gray-300:#cbd2da;--line-200:#e5e7eb;--surface-100:#f2f4f7;--page-050:#f6f7f9;--white:#fff;
-/* semantic status */
---done-500:#2f9e44;--done-soft:#e6f4ea;--progress-500:#f08c00;--progress-soft:#fff4e6;
---todo-500:#6b7280;--todo-soft:#f1f3f5;
+/* ── Dark theme · blue-cyan wayfinding + gold achievement ──
+   Two brand colors carry the two meaningful states: cyan/blue = active &
+   navigable (momentum), gold = earned & complete (mastery). Neutrals are a
+   blue-black ramp (hue ~260) so the dark canvas is the brand's own, not a
+   generic charcoal. Values are OKLCH for perceptually-even steps. */
+/* blue/cyan — interactive accent + course identity, brightened for dark */
+--blue-500:oklch(.70 .16 250);--blue-600:oklch(.80 .13 240);
+--blue-soft:oklch(.70 .16 250 / .20);--cyan-500:oklch(.85 .13 205);
+/* gold — signature primary action + achievement/mastery */
+--gold-500:oklch(.82 .135 84);--gold-600:oklch(.88 .12 86);
+--gold-soft:oklch(.82 .135 84 / .18);--gold-ink:oklch(.24 .05 90);
+/* neutrals — a blue-black ramp (dark → light), tinted toward the brand hue */
+--ink-050:oklch(.165 .022 262);--ink-075:oklch(.215 .026 262);--ink-100:oklch(.265 .028 262);
+--line-200:oklch(.315 .024 262);--ghost-300:oklch(.42 .026 262);
+--dim-400:oklch(.60 .022 260);--dim-500:oklch(.72 .02 260);
+--fg-700:oklch(.89 .012 250);--fg-900:oklch(.97 .006 250);
+/* semantic status — done=gold (earned), in-progress=cyan (live), todo=muted */
+--done-500:var(--gold-500);--done-soft:var(--gold-soft);
+--progress-500:var(--cyan-500);--progress-soft:oklch(.85 .13 205 / .16);
+--todo-500:oklch(.62 .02 260);--todo-soft:oklch(.62 .02 260 / .14);
 /* semantic aliases (use these) */
---bg:var(--page-050);--surface:var(--white);--surface-sunken:var(--surface-100);
---text-strong:var(--ink-900);--text-body:var(--ink-700);--text-muted:var(--gray-500);--text-faint:var(--gray-400);
---border:var(--line-200);--ghost:var(--gray-300);
---accent:var(--blue-500);--accent-hover:var(--blue-600);--accent-soft:var(--blue-soft);--accent-contrast:#fff;
+--bg:var(--ink-050);--surface:var(--ink-075);--surface-sunken:var(--ink-100);
+--text-strong:var(--fg-900);--text-body:var(--fg-700);--text-muted:var(--dim-500);--text-faint:var(--dim-400);
+--border:var(--line-200);--ghost:var(--ghost-300);
+--accent:var(--blue-500);--accent-hover:var(--blue-600);--accent-soft:var(--blue-soft);--accent-contrast:oklch(.20 .05 262);
+/* gold primary action — constant across course themes (themeVars only re-tints --accent) */
+--gold:var(--gold-500);--gold-hover:var(--gold-600);--gold-glow:var(--gold-soft);--gold-contrast:var(--gold-ink);
 --status-done:var(--done-500);--status-done-soft:var(--done-soft);
+--status-done-contrast:var(--gold-ink);
 --status-progress:var(--progress-500);--status-progress-soft:var(--progress-soft);
 --status-todo:var(--todo-500);--status-todo-soft:var(--todo-soft);
 --link:var(--blue-500);--link-hover:var(--blue-600);
 /* radii / borders / shadows / motion */
 --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-pill:999px;
---shadow-sm:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);
---shadow-md:0 4px 12px rgba(16,24,40,.08),0 2px 4px rgba(16,24,40,.06);
+--shadow-sm:0 1px 2px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.3);
+--shadow-md:0 8px 24px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.35);
 --shadow-glow:0 0 0 4px var(--accent-soft);
 --ease-out:cubic-bezier(.2,.9,.3,1);--ease-pop:cubic-bezier(.2,.9,.3,1.3);
 --dur-fast:120ms;--dur-base:220ms;--dur-slow:500ms;

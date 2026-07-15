@@ -468,10 +468,12 @@ border-radius:var(--radius-pill);color:var(--text-muted);background:var(--surfac
 .approx .tilde{color:var(--text-faint)}
 .provisional-tag{font-family:var(--font-ui);font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 .faint{color:var(--text-faint)}
-.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--accent-contrast);border:1px solid transparent;
-border-radius:var(--radius-md);padding:12px 20px;font-size:13.5px;font-weight:600;line-height:1;cursor:pointer;text-decoration:none;
-transition:background var(--dur-fast) var(--ease-out)}
-.btn:hover{background:var(--accent-hover);color:var(--accent-contrast)}
+/* primary action — gold, the app's one "move your learning forward" button. Held
+   constant across course themes (course accent re-tints --accent, never --gold). */
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--gold-contrast);border:1px solid transparent;
+border-radius:var(--radius-md);padding:12px 20px;font-size:13.5px;font-weight:700;line-height:1;cursor:pointer;text-decoration:none;
+box-shadow:0 2px 10px -2px var(--gold-glow);transition:background var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}
+.btn:hover{background:var(--gold-hover);color:var(--gold-contrast);box-shadow:0 4px 16px -2px var(--gold-glow)}
 /* Continue hero — flat editorial surface with a ghosted display numeral */
 .hero{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
 box-shadow:var(--shadow-sm);padding:24px 26px 22px;margin-bottom:26px}
@@ -506,7 +508,7 @@ margin-right:10px;vertical-align:2px}
 .node:last-child::after{display:none}.node.done::after{background:var(--status-done)}
 .node .bead{width:var(--bead-size);height:var(--bead-size);border-radius:50%;background:var(--surface);border:2px solid var(--border);
 z-index:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-faint)}
-.node.done .bead{background:var(--status-done);border-color:var(--status-done);color:#fff}
+.node.done .bead{background:var(--status-done);border-color:var(--status-done);color:var(--status-done-contrast)}
 .node.next .bead{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow-glow)}
 .node.ghost .bead{border-style:dashed;border-color:var(--ghost);opacity:.75}
 .node .cap{font-size:11px;text-align:center;color:var(--text-muted);max-width:84px;line-height:1.3}
@@ -567,10 +569,10 @@ padding:16px 20px;margin-bottom:22px;animation:pop .5s var(--ease-pop) both}
 .celebrate .t{font-size:14.5px;font-weight:650}
 .celebrate .s{font-size:12.5px;color:var(--text-muted)}
 /* --- in-app teacher chat (phase-2 demo) --- */
-.topbar .teachbtn{margin-left:auto;background:var(--accent);color:var(--accent-contrast);border:none;
-border-radius:var(--radius-md);padding:9px 15px;font-family:var(--font-ui);font-size:13px;font-weight:600;
-cursor:pointer;box-shadow:var(--shadow-sm);transition:background var(--dur-fast) var(--ease-out)}
-.topbar .teachbtn:hover{background:var(--accent-hover)}
+.topbar .teachbtn{margin-left:auto;background:var(--gold);color:var(--gold-contrast);border:none;
+border-radius:var(--radius-md);padding:9px 15px;font-family:var(--font-ui);font-size:13px;font-weight:700;
+cursor:pointer;box-shadow:0 2px 10px -2px var(--gold-glow);transition:background var(--dur-fast) var(--ease-out)}
+.topbar .teachbtn:hover{background:var(--gold-hover)}
 .btn.block{width:100%;justify-content:center;padding:13px;font-size:14.5px;margin:20px 0 6px}
 .fallback{margin-top:4px}
 .fallback>summary{cursor:pointer;color:var(--text-muted);font-size:12.5px;padding:8px 0;list-style:none}

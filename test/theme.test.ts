@@ -20,7 +20,7 @@ describe("courseColor / courseTheme", () => {
     expect(courseColor("chess-basics")).toBe(courseColor("chess-basics"));
   });
 
-  it("gives readable contrast text: dark on the light cyans, white on the deep blues", () => {
+  it("gives readable contrast text: dark on the light cyans, white on the deep blue", () => {
     const bySlugColor = new Map<string, string>();
     // Sweep slugs until every palette color has been assigned at least once.
     for (let i = 0; bySlugColor.size < COURSE_PALETTE.length && i < 500; i++) {
@@ -28,9 +28,8 @@ describe("courseColor / courseTheme", () => {
       bySlugColor.set(courseColor(slug), courseTheme(slug).contrast);
     }
     expect(bySlugColor.size).toBe(COURSE_PALETTE.length); // hash reaches all five
-    expect(bySlugColor.get("#00ddff")).toBe("#092b80");
-    expect(bySlugColor.get("#092b80")).toBe("#ffffff");
-    expect(bySlugColor.get("#004fa7")).toBe("#ffffff");
+    expect(bySlugColor.get("#3ce0e0")).toBe("#092b80"); // bright aqua → deep-ink text
+    expect(bySlugColor.get("#4a70e0")).toBe("#ffffff"); // the deeper blue → white text
   });
 
   it("emits the accent into the dashboard vars and the lesson-page contract", () => {

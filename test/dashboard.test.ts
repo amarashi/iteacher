@@ -220,7 +220,7 @@ describe("renderDashboard — journey rails (#4)", () => {
       model([topic({ slug: "rust", state: "in-progress", lessons: [bead("01.html", "A", "in-progress")] })]),
     );
     const style = doc.querySelector(".rail")?.getAttribute("style") ?? "";
-    expect(style).toMatch(/--accent:#(00ddff|00b8ff|0097e1|004fa7|092b80)/);
+    expect(style).toMatch(/--accent:#(3ce0e0|22c1f5|3a9bf5|8aa8ff|4a70e0)/);
     // The swatch dot that makes the course color visible at a glance.
     expect(doc.querySelector(".rail .cdot")).not.toBeNull();
   });

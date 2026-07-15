@@ -105,21 +105,21 @@ A shared stylesheet is the first component every workspace earns: every lesson l
 
 ### Course color
 
-Every course is assigned **one accent color by the iTeacher app**, drawn from a fixed five-blue palette:
+Every course is assigned **one accent color by the iTeacher app**, drawn from a fixed five-shade aqua→blue palette (tuned to stay luminous on the app's dark theme):
 
 | Hex       | RGB             |
 | --------- | --------------- |
-| `#00ddff` | (0, 221, 255)   |
-| `#00b8ff` | (0, 184, 255)   |
-| `#0097e1` | (0, 151, 225)   |
-| `#004fa7` | (0, 79, 167)    |
-| `#092b80` | (9, 43, 128)    |
+| `#3ce0e0` | (60, 224, 224)  |
+| `#22c1f5` | (34, 193, 245)  |
+| `#3a9bf5` | (58, 155, 245)  |
+| `#8aa8ff` | (138, 168, 255) |
+| `#4a70e0` | (74, 112, 224)  |
 
 The app derives the assignment deterministically from the workspace folder name and uses it everywhere the course appears — its dashboard rail, the study view, and the top bar of every served lesson. Your lessons must carry the **same** color as their single accent, so each course reads as one visual identity:
 
 - **In-app teaching sessions are told the assigned hex in their opening prompt** — use exactly that value; never pick a different one.
 - **In CSS, write the accent as `var(--course-accent, <hex>)`** (the shared stylesheet is the right home for it). The app injects `--course-accent` — plus `--course-accent-hover`, `--course-accent-soft`, and `--course-accent-contrast` (the readable text color to use *on* the accent) — into every lesson page it serves, so a served lesson always matches the app's assignment. The fallback hex only matters when the file is opened outside the app; if you weren't told the assignment, use a palette color that fits as the fallback.
-- **Don't introduce competing accent hues.** Neutrals + the course accent (and, where needed, semantic status colors like the greens/ambers the app uses for done/in-progress) are the whole lesson palette.
+- **Don't introduce competing accent hues.** Neutrals + the course accent (and, where needed, the semantic status colors the app uses — gold for done/mastered, cyan for in-progress) are the whole lesson palette.
 
 ### Illustrations
 

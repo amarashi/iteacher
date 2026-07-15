@@ -1,8 +1,9 @@
 /**
  * Per-course color identity.
  *
- * Every course (topic workspace) is assigned one accent from a fixed five-blue
- * palette, derived deterministically from its folder slug — nothing is stored,
+ * Every course (topic workspace) is assigned one accent from a fixed five-shade
+ * aqua→blue palette, derived deterministically from its folder slug — nothing is
+ * stored,
  * and a course's color never shifts when other topics come or go. The same
  * assignment is used everywhere the course appears: the dashboard rail, the
  * study shell, the chrome injected into served lessons, and the authoring
@@ -11,8 +12,14 @@
  * authors in `teach/SKILL.md` under "Course color".
  */
 
-/** The fixed course palette, light → deep. */
-export const COURSE_PALETTE = ["#00ddff", "#00b8ff", "#0097e1", "#004fa7", "#092b80"] as const;
+/**
+ * The fixed course palette, aqua → blue. Tuned for the dark canvas: every shade
+ * stays luminous on the blue-black surface (the deep navies of the old light
+ * theme would vanish here), while still spanning enough hue that five courses
+ * read as five distinct identities. The one deeper blue keeps the "white text on
+ * a dark accent" contrast branch live for lessons that fill with the accent.
+ */
+export const COURSE_PALETTE = ["#3ce0e0", "#22c1f5", "#3a9bf5", "#8aa8ff", "#4a70e0"] as const;
 
 export interface CourseTheme {
   /** The assigned palette hex. */
