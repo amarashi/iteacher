@@ -17,7 +17,7 @@ import type { DashboardModel, TopicModel, LessonBead } from "../store/types.js";
 import { esc, attr, journeyLabel } from "./html.js";
 import { TOKENS_CSS } from "./tokens.js";
 import { themeVars } from "./theme.js";
-import { CHAT_CSS, CHAT_MD_JS, CHAT_THINKING_JS } from "./chat.js";
+import { CHAT_CSS, CHAT_MD_JS, CHAT_THINKING_JS, CHAT_MIC_JS } from "./chat.js";
 
 const AHEAD = 3; // beads to draw past the next-up lesson before collapsing to a cap
 const BEHIND = 1; // recent completed beads to keep for context
@@ -279,6 +279,7 @@ function chatPanel(): string {
   </div>
   <form class="chatform" onsubmit="return iteacherSend(event)">
     <textarea id="chatinput" rows="1" placeholder="Type what you want to learn…" autocomplete="off"></textarea>
+    <button class="mic" type="button" id="chatmic" aria-label="Dictate your message" aria-pressed="false" title="Speak your message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
     <button class="send" type="submit" aria-label="Send">→</button>
   </form>
 </aside>`;
@@ -310,6 +311,7 @@ ${body}
 ${chatPanel()}
 <script>${CHAT_MD_JS}</script>
 <script>${CHAT_THINKING_JS}</script>
+<script>${CHAT_MIC_JS}</script>
 <script>${LIVE_SCRIPT}</script>
 </body>
 </html>`;

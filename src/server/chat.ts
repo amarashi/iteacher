@@ -47,6 +47,17 @@ padding:10px 12px;font-family:var(--font-ui);font-size:13.5px;line-height:1.4;co
 .send{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:none;background:var(--accent);
 color:var(--accent-contrast);font-size:18px;cursor:pointer}
 .send:disabled{opacity:.45;cursor:default}
+/* Dictation: a secondary round button that turns the mic into text via the
+   browser's built-in SpeechRecognition. Hidden entirely when unsupported
+   (see CHAT_MIC_JS), so it never shows a dead control. */
+.mic{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:1px solid var(--border);
+background:var(--surface);color:var(--text-muted);cursor:pointer;display:inline-flex;
+align-items:center;justify-content:center;padding:0}
+.mic:hover:not(:disabled){color:var(--accent);border-color:var(--accent)}
+.mic:disabled{opacity:.45;cursor:default}
+.mic svg{width:17px;height:17px;display:block}
+.mic.rec{color:#fff;background:var(--error);border-color:transparent;animation:micpulse 1.4s ease-in-out infinite}
+@keyframes micpulse{0%,100%{box-shadow:0 0 0 0 var(--error)}50%{box-shadow:0 0 0 5px transparent}}
 /* Rendered-markdown assistant text: real paragraphs, headings, lists, emphasis. */
 .bubble .txt{white-space:normal;display:block}
 .bubble .txt>*:first-child{margin-top:0}
@@ -127,6 +138,50 @@ export const CHAT_MD_JS = `(function(){
  * ("reading…", "writing…"), so the wait is always narrated. Same ES5-in-a-
  * template-string style as CHAT_MD_JS; exposes `window.iteacherThinking`.
  */
+/**
+ * Speak-instead-of-type dictation for the composer, using the browser's built-in
+ * SpeechRecognition — no dependency, no server audio handling, no model to ship.
+ * Self-wiring: finds the `#chatmic` button and `#chatinput` textarea, and if the
+ * API is missing it hides the button so no dead control is ever shown. While
+ * listening, live (interim + final) transcript is appended after whatever the
+ * learner had already typed; a second click, sending, or losing focus stops it.
+ *
+ * Same ES5-in-a-template-string style as the other chat modules. Include after
+ * the composer markup exists in the DOM.
+ */
+export const CHAT_MIC_JS = `(function(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var btn=document.getElementById('chatmic'), input=document.getElementById('chatinput');
+  if(!btn||!input)return;
+  if(!SR){ btn.remove(); return; }
+  var rec=null, listening=false, base='';
+  function setListening(v){
+    listening=v; btn.classList.toggle('rec',v); btn.setAttribute('aria-pressed',v?'true':'false');
+    btn.title=v?'Stop dictation':'Speak your message';
+    if(!v){ rec=null; try{input.focus();}catch(e){} }
+  }
+  function stop(){ if(rec){ try{rec.stop();}catch(e){} } }
+  function start(){
+    if(input.disabled)return;
+    rec=new SR();
+    try{ rec.lang=navigator.language||'en-US'; }catch(e){}
+    rec.interimResults=true; rec.continuous=true;
+    base=input.value?input.value.replace(/\\s*$/,'')+' ':'';
+    rec.onresult=function(e){
+      var t='';
+      for(var i=0;i<e.results.length;i++){ t+=e.results[i][0].transcript; }
+      input.value=base+t;
+      try{ input.dispatchEvent(new Event('input',{bubbles:true})); }catch(err){}
+    };
+    rec.onerror=function(){ setListening(false); };
+    rec.onend=function(){ setListening(false); };
+    try{ rec.start(); setListening(true); }catch(e){ setListening(false); }
+  }
+  btn.addEventListener('click',function(){ if(listening)stop(); else start(); });
+  // Sending clears the box, so stop listening on submit to avoid re-filling it.
+  var form=btn.form||input.form; if(form)form.addEventListener('submit',stop);
+})();`;
+
 export const CHAT_THINKING_JS = `(function(){
   var node=null, txt=null, mascot=null;
   // Each state pairs a caption with a mascot pose (assets/<pose>.png): reading a
