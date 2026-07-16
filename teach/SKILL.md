@@ -63,7 +63,7 @@ Fluency can give the user an illusory sense of mastery, but storage strength is 
 
 A lesson is the main thing you produce — the unit in which knowledge and skills reach the user. Each lesson is one self-contained HTML file, saved to `./lessons/` and titled `0001-<dash-case-name>.html` where the number increments each time.
 
-A lesson should be **beautiful** — clean, readable typography and layout — since the user will return to these later to review. Think Federica Fragapane. Her style is explaind inable, clear, and beautiful. Use her style as a guide for your lessons. See [FEDERICA-FRAGAPANE-STYLE.md](./FEDERICA-FRAGAPANE-STYLE.md) for more details.
+A lesson should be **beautiful** — clean, readable typography and layout — since the user will return to these later to review. The visual system is Fragapane-inspired hairline craft (fine-pen ornament, calm typography, whitespace as a material) re-homed on iTeacher's dark, course-accented ground, so a served lesson reads as one continuous surface with the app around it. Follow [FEDERICA-FRAGAPANE-STYLE.md](./FEDERICA-FRAGAPANE-STYLE.md) exactly — it is a closed system.
 
 The lesson should be short, and completable very quickly. Learners' working memory is very small, and we need to stay within it. But each lesson should give the user a single tangible win that they can build on. It should be directly tied to the mission, and should be in the user's zone of proximal development.
 

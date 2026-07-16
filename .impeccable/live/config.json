@@ -1,0 +1,10 @@
+{
+  "files": [
+    "src/server/dashboard.ts",
+    "src/server/study.ts",
+    "src/server/welcome.ts"
+  ],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}
