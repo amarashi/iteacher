@@ -136,5 +136,5 @@ transition:background var(--dur-fast) var(--ease-out)}
 cursor:pointer;padding:6px 2px;text-decoration:none}
 .chooser{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
 .chooser label{display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:4px}
-.err{color:#c92a2a;font-size:12.5px;margin:8px 0 0}
+.err{color:var(--error);font-size:12.5px;margin:8px 0 0}
 `;

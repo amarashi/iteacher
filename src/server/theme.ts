@@ -18,8 +18,14 @@
  * theme would vanish here), while still spanning enough hue that five courses
  * read as five distinct identities. The one deeper blue keeps the "white text on
  * a dark accent" contrast branch live for lessons that fill with the accent.
+ *
+ * The two deepest blues were lifted so they stay luminous as small accents on the
+ * blue-black surface (a bead, a node ring, a link) rather than sinking into it:
+ * the mid blue #3a9bf5 → #55adff (contrast vs --bg 6.6→8.1), and the deep anchor
+ * #4a70e0 → #587ce2 (4.3→5.0). The anchor was held just under the YIQ-128 line on
+ * purpose, so it keeps the white-text-on-accent branch above alive.
  */
-export const COURSE_PALETTE = ["#3ce0e0", "#22c1f5", "#3a9bf5", "#8aa8ff", "#4a70e0"] as const;
+export const COURSE_PALETTE = ["#3ce0e0", "#22c1f5", "#55adff", "#8aa8ff", "#587ce2"] as const;
 
 export interface CourseTheme {
   /** The assigned palette hex. */

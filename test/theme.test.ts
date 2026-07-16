@@ -29,7 +29,7 @@ describe("courseColor / courseTheme", () => {
     }
     expect(bySlugColor.size).toBe(COURSE_PALETTE.length); // hash reaches all five
     expect(bySlugColor.get("#3ce0e0")).toBe("#092b80"); // bright aqua → deep-ink text
-    expect(bySlugColor.get("#4a70e0")).toBe("#ffffff"); // the deeper blue → white text
+    expect(bySlugColor.get("#587ce2")).toBe("#ffffff"); // the lifted deep blue stays dark enough → white text
   });
 
   it("emits the accent into the dashboard vars and the lesson-page contract", () => {
