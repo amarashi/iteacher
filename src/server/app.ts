@@ -14,6 +14,7 @@
  *                                  lesson pages get injected chrome + bridge
  *   GET  /_iteacher/bridge.js    — the runtime bridge script
  *   POST /api/progress           — one completion fact → recordCompletion
+ *   POST /api/w/:topic/upload    — a learner Artifact/Exhibit → workspace file
  */
 
 import express, { type Express, type Request, type Response } from "express";
@@ -24,6 +25,7 @@ import { deriveDashboard, recordCompletion } from "../store/index.js";
 import type { CompletionEvent, DashboardModel, TopicModel } from "../store/types.js";
 import { readConfig, writeConfig } from "../store/config.js";
 import { BRIDGE_SOURCE } from "./bridge.js";
+import { parseUpload, saveUpload } from "./uploads.js";
 import { createEventStream } from "./events.js";
 import { startSession, startTutorSession, replyToSession, subscribe } from "./agent.js";
 import { injectChrome } from "./render.js";
@@ -117,6 +119,23 @@ export function createApp(config: AppOptions | string): Express {
     }
     recordCompletion(join(root, topic), event);
     res.status(204).end();
+  });
+
+  // A learner upload — an Artifact submitted from a lesson, or an Exhibit attached
+  // in the chat — persisted into the workspace so the tutor can `Read` it (ADR-0002).
+  // Its own parser: base64 image/code payloads dwarf the app-wide 64kb JSON limit.
+  app.post("/api/w/:topic/upload", express.json({ limit: "12mb" }), (req, res) => {
+    if (!root) return res.status(404).json({ error: "no root selected" });
+    const topic = req.params.topic!;
+    if (!isWorkspace(root, topic)) return res.status(404).json({ error: "unknown topic" });
+    const parsed = parseUpload(req.body);
+    if (typeof parsed === "string") return res.status(400).json({ error: parsed });
+    try {
+      const { path } = saveUpload(join(root, topic), parsed, new Date());
+      res.status(201).json({ path });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "upload failed" });
+    }
   });
 
   app.get("/w/:topic/*", (req, res) => {

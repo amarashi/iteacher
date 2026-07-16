@@ -194,6 +194,32 @@ Each of these should be based on a **feedback loop**, where the user receives fe
 
 For quizzes, each answer should be exactly the same number of words (and characters, if possible). Don't give the user any clues about the answer through formatting.
 
+### Practice lessons — submitting work for critique
+
+The tightest quizzes only test *recall*. Real skill needs the learner to **produce something** and get feedback on it. A **practice lesson** poses a task, lets the learner make a thing — code, a sketch, a written passage, a photographed hand-worked problem — and hands it to the docked tutor for a **critique**. Reach for one whenever the skill is a *doing* skill rather than a *knowing* one.
+
+Two pieces make a practice lesson:
+
+- **A brief.** State the task and the one or two things you're assessing, in a sentence or two — e.g. "Sketch a cube in two-point perspective. We're checking that your two sets of edges each converge to a single vanishing point." Keep it a brief, not a rubric; the tutor fills in judgement.
+- **A submit affordance.** Give the learner a way to hand in their work. The runtime bridge exposes `window.iteacher.submit({ file, brief })`: pass a `File`/`Blob` (from a `<input type="file">`, or a `<canvas>` via `canvas.toBlob(...)`) and the brief string. The bridge uploads the file into the workspace and asks the tutor — right there in the docked chat — to read it and critique it against the brief.
+
+  ```html
+  <div data-exercise-id="cube-2pt" data-brief="Sketch a cube in two-point perspective; check both vanishing points line up.">
+    <input type="file" id="cube-file" accept="image/*">
+    <button onclick="window.iteacher.submit({ file: document.getElementById('cube-file').files[0], brief: this.closest('[data-brief]').dataset.brief })">
+      Submit for critique
+    </button>
+  </div>
+  ```
+
+  (You can also `dispatchEvent(new CustomEvent('iteacher:submit', { bubbles:true, detail:{ file } }))` — the brief is read from the nearest `[data-brief]` ancestor.)
+
+The critique arrives as a **conversation** in the tutor chat — it is *not* a grade. Progress still records the same way it always has: the learner marks the lesson complete, or the lesson emits `iteacher:exercise` as usual. Never gate a practice lesson on the critique coming back, and — as with all interactivity — it degrades to a plain file input when opened outside the app.
+
+**What the tutor can perceive.** The tutor reads text and code and *sees* images, but it is **deaf** — it cannot hear audio or judge timing. So practice artifacts must be **text, code, or images** (a diagram, a screenshot, a photo of hand-drawn or hand-written work all count). Don't design a practice lesson whose feedback depends on hearing a performance.
+
+**`submissions/` and `exhibits/` are app-managed.** The runtime writes the learner's uploads into `./submissions/` (work submitted for critique) and `./exhibits/` (things the learner attaches in chat to ask about). Like `progress.json`, these are the app's to write — never author into them, and don't treat them as lesson content. They are learner data; a workspace under version control should gitignore them.
+
 ## Acquiring Wisdom
 
 Wisdom comes from true real-world interaction - testing your skills outside the learning environment.

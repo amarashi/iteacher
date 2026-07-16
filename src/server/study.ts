@@ -55,7 +55,13 @@ export function renderStudy(topic: TopicModel, currentFile: string): string {
     <div class="chatlog" id="chatlog">
       <div class="msg bot" id="joining"><div class="bubble">Connecting you to your teacher…</div></div>
     </div>
+    <div class="attachchip" id="attachchip" hidden>
+      <span class="paperclip" aria-hidden="true">📎</span><b id="attachname"></b>
+      <button class="rm" type="button" id="attachrm" aria-label="Remove attachment" title="Remove">×</button>
+    </div>
     <form class="chatform" onsubmit="return studySend(event)">
+      <input type="file" id="chatfile" hidden accept="image/*,.txt,.md,.markdown,.py,.js,.ts,.jsx,.tsx,.json,.csv,.html,.css,.yml,.yaml,.sql,.java,.c,.cpp,.cs,.go,.rs,.rb,.php,.swift,.kt,.r">
+      <button class="attach" type="button" id="chatattach" aria-label="Attach something to ask about" title="Attach an image or file to ask about" onclick="document.getElementById('chatfile').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
       <textarea id="chatinput" rows="1" placeholder="Ask your teacher about this lesson…" autocomplete="off"></textarea>
       <button class="mic" type="button" id="chatmic" aria-label="Dictate your message" aria-pressed="false" title="Speak your message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
       <button class="send" type="submit" aria-label="Send">→</button>
@@ -130,7 +136,7 @@ const STUDY_SCRIPT = `(function(){
   // --- teacher tutor chat (per-topic session) ---
   var sid=null, es=null, curBubble=null, curTxt=null, curText='', sending=false;
   // A critique turn can arrive (from a lesson submission) while the tutor is mid-
-  // reply; hold one and flush it when the turn ends. `attached` is a pending Exhibit.
+  // reply; hold one and flush it when the turn ends. attached is a pending Exhibit.
   var pendingTutor=null, attached=null;
   function logEl(){ return document.getElementById('chatlog'); }
   function scroll(){ var l=logEl(); if(l)l.scrollTop=l.scrollHeight; }
@@ -156,7 +162,7 @@ const STUDY_SCRIPT = `(function(){
   function onTeach(d){
     if(d.type==='text'){ if(!curBubble)newBot(); curText+=d.text; curTxt.innerHTML=window.iteacherMd(curText); scroll(); }
     else if(d.type==='tool'){ if(!curBubble)window.iteacherThinking.tool(logEl(),d.name); }
-    else if(d.type==='turn'){ window.iteacherThinking.hide(); if(curBubble){curBubble.classList.remove('streaming');} curBubble=null; setSending(false); }
+    else if(d.type==='turn'){ window.iteacherThinking.hide(); if(curBubble){curBubble.classList.remove('streaming');} curBubble=null; setSending(false); flushPending(); }
     else if(d.type==='error'){ if(!curBubble)newBot(); curTxt.innerHTML=window.iteacherMd(curText+'\\n\\n\\u26a0 '+d.message); curBubble.classList.remove('streaming'); curBubble=null; setSending(false); }
   }
   function openStream(){
@@ -173,19 +179,80 @@ const STUDY_SCRIPT = `(function(){
       .then(function(j){ if(!j||!j.sessionId){setSending(false);dropJoining();return;} sid=j.sessionId; openStream(); if(j.existing){setSending(false);dropJoining();} })
       .catch(function(){ setSending(false); dropJoining(); });
   }
+  // Deliver one turn to the tutor: 'bubble' is what the learner sees, 'tutorText'
+  // is the (possibly richer) instruction the tutor receives. Held in pendingTutor
+  // if a turn is already streaming, and flushed when that turn ends.
+  function deliver(tutorText, bubble){
+    if(!sid)return;
+    if(sending){ pendingTutor={t:tutorText, b:bubble}; return; }
+    addUser(bubble); setSending(true); window.iteacherThinking.show(logEl());
+    fetch('/api/teach/'+sid+'/reply',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:tutorText})})
+      .catch(function(){ window.iteacherThinking.hide(); setSending(false); });
+  }
+  function flushPending(){ if(pendingTutor&&sid&&!sending){ var p=pendingTutor; pendingTutor=null; deliver(p.t,p.b); } }
+
   window.studySend=function(e){
     if(e&&e.preventDefault)e.preventDefault();
     var i=document.getElementById('chatinput'); var text=(i&&i.value||'').trim();
-    if(!text||sending||!sid)return false;
-    addUser(text); if(i)i.value=''; setSending(true);
-    window.iteacherThinking.show(logEl());
-    fetch('/api/teach/'+sid+'/reply',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:text})})
-      .catch(function(){ window.iteacherThinking.hide(); setSending(false); });
+    if((!text&&!attached)||!sid)return false;
+    if(attached){
+      var ask=text||'Can you take a look at this and help me understand it?';
+      var tutorText=ask+'\\n\\n(I\\u2019ve attached something for you to look at. Read the file at '+attached.path+' and help me with it \\u2014 this is not my own work to grade, just something I want to understand.)';
+      deliver(tutorText, '\\uD83D\\uDCCE '+attached.name+(text?'\\n'+text:''));
+      clearAttach();
+    } else {
+      deliver(text, text);
+    }
+    if(i)i.value='';
     return false;
   };
+
+  // --- Exhibit attach: upload a file to ask the tutor about (records no progress) ---
+  function clearAttach(){
+    attached=null;
+    var chip=document.getElementById('attachchip'); if(chip)chip.hidden=true;
+    var inp=document.getElementById('chatfile'); if(inp)inp.value='';
+  }
+  function showAttach(name){
+    var chip=document.getElementById('attachchip'), nm=document.getElementById('attachname');
+    if(nm)nm.textContent=name; if(chip)chip.hidden=false;
+  }
+  function onFilePicked(){
+    var inp=document.getElementById('chatfile'); var file=inp&&inp.files&&inp.files[0];
+    if(!file)return;
+    showAttach('Uploading \\u2026');
+    var reader=new FileReader();
+    reader.onerror=function(){ clearAttach(); };
+    reader.onload=function(){
+      var s=String(reader.result||''); var c=s.indexOf(','); var b64=c>=0?s.slice(c+1):s;
+      fetch('/api/w/'+encodeURIComponent(SLUG)+'/upload',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({kind:'exhibit', filename:file.name||'exhibit', dataBase64:b64})})
+        .then(function(r){ return r.json().then(function(j){ if(!r.ok)throw new Error((j&&j.error)||'upload failed'); return j; }); })
+        .then(function(j){ attached={path:j.path, name:file.name||'attachment'}; showAttach(attached.name); })
+        .catch(function(){ clearAttach(); });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // --- Artifact critique: a lesson submitted the learner's own work for critique ---
+  function onSubmitted(msg){
+    var brief=(msg.brief||'').trim();
+    var tutorText='I\\u2019ve just submitted my own work for this lesson and I\\u2019d love your critique. '+
+      'Read the file at '+msg.path+' and critique it'+(brief?' against this brief: \\u201c'+brief+'\\u201d.':'.')+
+      ' Be specific, point to what works and what to improve, and stay warm and encouraging.';
+    deliver(tutorText, '\\uD83D\\uDCE4 Submitted my work for critique');
+  }
+  window.addEventListener('message',function(e){
+    if(e.origin!==window.location.origin)return;
+    var d=e.data; if(!d||d.source!=='iteacher')return;
+    if(d.type==='submitted'&&d.path)onSubmitted(d);
+  });
+
   document.addEventListener('keydown',function(e){
     if(e.target&&e.target.id==='chatinput'&&e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); window.studySend(e); }
   });
+  (function(){ var inp=document.getElementById('chatfile'); if(inp)inp.addEventListener('change',onFilePicked);
+    var rm=document.getElementById('attachrm'); if(rm)rm.addEventListener('click',clearAttach); })();
 
   studyGo(window.studyIndex); paint(); startTutor();
 })();`;
@@ -221,6 +288,18 @@ padding:7px 14px;font-weight:600;font-size:12.5px;cursor:pointer;white-space:now
 .complete:hover:not(:disabled){background:var(--surface)}
 .complete.done{background:var(--status-done);color:#fff;border-color:transparent;cursor:default}
 .frame{flex:1;border:0;width:100%;background:#fff}
+/* Exhibit attach — a file the learner shows the tutor to ask about (not graded). */
+.attach{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:1px solid var(--border);
+background:var(--surface);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.attach:hover{color:var(--accent);border-color:var(--accent)}
+.attach svg{width:17px;height:17px}
+.attachchip{display:flex;align-items:center;gap:8px;margin:0 14px;padding:6px 10px;border:1px solid var(--border);
+border-radius:10px;background:var(--surface-sunken);font-size:12px;color:var(--text-muted)}
+.attachchip .paperclip{flex:0 0 auto}
+.attachchip b{min-width:0;color:var(--text-strong);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.attachchip .rm{margin-left:auto;flex:0 0 auto;background:none;border:none;color:var(--text-faint);
+font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
+.attachchip .rm:hover{color:var(--text-strong)}
 @media(max-width:820px){
   .study{grid-template-columns:1fr;grid-template-rows:38vh 1fr}
   .teacher{border-right:0;border-bottom:1px solid var(--border)}
